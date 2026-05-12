@@ -151,7 +151,7 @@ export default function HomeScreen() {
             FIELD SCANNER
           </Text>
 
-          <TrainingIcon
+          <ScannerIcon
                 width={30}
                 height={30}
                 style={styles.scannerCardIcon}

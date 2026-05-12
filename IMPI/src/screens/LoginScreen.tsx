@@ -52,7 +52,7 @@ export default function LoginScreen({ setCurrentScreen }: Props) {
             style={styles.loginButton}
             onPress={() => setCurrentScreen('home')}
           >
-            <Text style={styles.loginButtonText}>LOGIN</Text>
+            <Text style={styles.loginButtonText}>LOG IN</Text>
           </TouchableOpacity>
 
           <Text style={styles.signupText}>
