@@ -54,7 +54,7 @@ export default function App() {
   }
 
   if (currentScreen === 'home') {
-    return <HomeScreen />;
+    return <HomeScreen setCurrentScreen={setCurrentScreen} />;
   }
 
   if (currentScreen === 'login') {

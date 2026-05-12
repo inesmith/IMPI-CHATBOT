@@ -1,7 +1,10 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, StyleSheet, Text, TouchableOpacity, View, Alert, TextInput } from 'react-native';
 import { useFonts } from 'expo-font';
 import { useEffect, useMemo, useState } from 'react';
 import * as Location from 'expo-location';
+import { signOut, deleteUser } from 'firebase/auth';
+import { doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../services/firebaseConfig';
 
 import TrackIcon from '../../assets/images/trackIcon.svg';
 import FieldGuideIcon from '../../assets/images/fieldguideIcon.svg';
@@ -10,13 +13,26 @@ import TrainingIcon from '../../assets/images/trainingIcon.svg';
 import TalkIcon from '../../assets/images/talkIcon.svg';
 import Arrow from '../../assets/images/arrow.svg';
 
-export default function HomeScreen() {
+type Props = {
+  setCurrentScreen: (screen: string) => void;
+};
+
+export default function HomeScreen({ setCurrentScreen }: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
 
   const [weatherText, setWeatherText] = useState('WEATHER CONDITIONS: LOADING...');
   const [patrolZone, setPatrolZone] = useState('PATROL ZONE: LOADING...');
+
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
 
   useEffect(() => {
     async function loadLocationAndWeather() {
@@ -80,6 +96,79 @@ export default function HomeScreen() {
   loadLocationAndWeather();
   }, []);
 
+  useEffect(() => {
+    async function loadUserData() {
+        if (!auth.currentUser) {
+        return;
+        }
+
+        const userDoc = await getDoc(
+        doc(db, 'users', auth.currentUser.uid)
+        );
+
+        if (userDoc.exists()) {
+        const data = userDoc.data();
+
+        setUsername(data.username || '');
+        setEmail(data.email || '');
+        setPhoneNumber(data.phoneNumber || '');
+        }
+    }
+
+    loadUserData();
+  }, []);
+
+  const handleLogout = async () => {
+  await signOut(auth);
+  setMenuVisible(false);
+  setCurrentScreen('login');
+};
+
+const handleDeleteAccount = () => {
+    Alert.alert(
+        'Delete Account',
+        'Are you sure you want to delete your IMPI account? This cannot be undone.',
+        [
+        {
+            text: 'Cancel',
+            style: 'cancel',
+        },
+        {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+            const user = auth.currentUser;
+
+            if (!user) {
+                return;
+            }
+
+            await deleteDoc(doc(db, 'users', user.uid));
+            await deleteUser(user);
+
+            setMenuVisible(false);
+            setCurrentScreen('login');
+            },
+        },
+        ]
+    );
+  };
+
+  const handleSaveProfile = async () => {
+    if (!auth.currentUser) {
+        return;
+    }
+
+    await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        username: username.trim(),
+        email: email.trim(),
+        phoneNumber: phoneNumber.trim(),
+    });
+
+    setProfileMessage('PROFILE UPDATED.');
+    setIsEditing(false);
+  };
+
   if (!fontsLoaded) {
     return null;
   }
@@ -109,7 +198,10 @@ export default function HomeScreen() {
 
       <View style={styles.scrollContent}>
         <View style={styles.topRow}>
-          <TouchableOpacity style={styles.menuButton}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setMenuVisible(true)}
+          >
             <Text style={styles.menuText}>☰</Text>
           </TouchableOpacity>
 
@@ -287,8 +379,102 @@ export default function HomeScreen() {
 
           <Text style={styles.recentText}>TRAINING SESSIONS</Text>
         </TouchableOpacity>
-
       </View>
+
+        
+
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        >
+        <View style={styles.modalOverlay}>
+
+            <Image
+            source={require('../../assets/images/dust.png')}
+            style={styles.dust}
+            resizeMode="cover"
+            />
+
+            <View style={styles.modalCard}>
+            <View style={styles.modalBackground} />
+
+            <Text style={styles.modalTitle}>RANGER PROFILE SETTINGS</Text>
+
+            <Text style={styles.modalLabel}>USERNAME</Text>
+                {isEditing ? (
+                <TextInput
+                    style={styles.modalInput}
+                    value={username}
+                    onChangeText={setUsername}
+                    placeholder="USERNAME"
+                    placeholderTextColor="#CFC4B2"
+                />
+                ) : (
+                <Text style={styles.modalValue}>{username || 'Not available'}</Text>
+                )}
+
+                <Text style={styles.modalLabel}>EMAIL</Text>
+                {isEditing ? (
+                <TextInput
+                    style={styles.modalInput}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="EMAIL"
+                    placeholderTextColor="#CFC4B2"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                />
+                ) : (
+                <Text style={styles.modalValue}>{email || 'Not available'}</Text>
+                )}
+
+                <Text style={styles.modalLabel}>PHONE</Text>
+                {isEditing ? (
+                <TextInput
+                    style={styles.modalInput}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    placeholder="PHONE"
+                    placeholderTextColor="#CFC4B2"
+                    keyboardType="phone-pad"
+                />
+                ) : (
+                <Text style={styles.modalValue}>{phoneNumber || 'Not available'}</Text>
+                )}
+
+            <Text style={styles.modalStatus}>FIELD NETWORK: ONLINE</Text>
+
+            {profileMessage ? (
+            <Text style={styles.profileMessage}>{profileMessage}</Text>
+            ) : null}
+
+            <TouchableOpacity
+            style={styles.modalButton}
+            onPress={isEditing ? handleSaveProfile : () => setIsEditing(true)}
+            >
+            <Text style={styles.modalButtonText}>
+                {isEditing ? 'SAVE DETAILS' : 'EDIT DETAILS'}
+            </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalButton} onPress={handleLogout}>
+                <Text style={styles.modalButtonText}>LOG OUT</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+                <Text style={styles.deleteButtonText}>DELETE ACCOUNT</Text>
+            </TouchableOpacity>
+
+            <Text
+                style={styles.closeText}
+                onPress={() => setMenuVisible(false)}
+            >
+                CLOSE
+            </Text>
+            </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -323,6 +509,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
     marginTop: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+    width: 0,
+    height: 4,
+    },
+    shadowOpacity: 0.40,
+    shadowRadius: 8,
+
+    elevation: 6,
   },
 
   menuButton: {
@@ -584,4 +779,138 @@ const styles = StyleSheet.create({
     marginLeft: 310,
     marginTop: -5,
   },
+
+  ///modal styles
+
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: '#191818',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+modalCard: {
+  width: '85%',
+  borderRadius: 22,
+  overflow: 'hidden',
+  padding: 28,
+},
+
+modalBackground: {
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: '#676127',
+  opacity: 0.32,
+},
+
+modalTitle: {
+  color: '#CFC4B2',
+  fontSize: 22,
+  lineHeight: 28,
+  fontFamily: 'Aldrich',
+  letterSpacing: 2,
+  marginBottom: 28,
+  textAlign: 'center',
+},
+
+modalLabel: {
+  color: '#CFC4B2',
+  fontSize: 9,
+  fontFamily: 'Aldrich',
+  letterSpacing: 1,
+  marginBottom: 6,
+},
+
+modalValue: {
+  color: '#F4F1EA',
+  fontSize: 13,
+  fontFamily: 'Aldrich',
+  marginBottom: 18,
+},
+
+modalStatus: {
+  color: '#CFC4B2',
+  fontSize: 10,
+  fontFamily: 'Aldrich',
+  textAlign: 'center',
+  marginTop: 10,
+  marginBottom: 24,
+},
+
+modalButton: {
+  height: 44,
+  borderRadius: 14,
+  backgroundColor: 'rgba(103, 97, 39, 0.45)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 14,
+  shadowColor: '#000',
+    shadowOffset: {
+    width: 0,
+    height: 4,
+    },
+    shadowOpacity: 0.40,
+    shadowRadius: 8,
+
+    elevation: 6,
+},
+
+modalButtonText: {
+  color: '#CFC4B2',
+  fontSize: 12,
+  fontFamily: 'Aldrich',
+  letterSpacing: 1,
+},
+
+deleteButton: {
+  height: 44,
+  borderRadius: 14,
+  backgroundColor: 'rgba(68, 40, 39, 0.65)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 22,
+  shadowColor: '#000',
+    shadowOffset: {
+    width: 0,
+    height: 4,
+    },
+    shadowOpacity: 0.40,
+    shadowRadius: 8,
+
+    elevation: 6,
+},
+
+deleteButtonText: {
+  color: '#CFC4B2',
+  fontSize: 12,
+  fontFamily: 'Aldrich',
+  letterSpacing: 1,
+},
+
+closeText: {
+  color: '#CFC4B2',
+  fontSize: 10,
+  fontFamily: 'Aldrich',
+  textAlign: 'center',
+  textDecorationLine: 'underline',
+},
+
+modalInput: {
+  width: '100%',
+  height: 42,
+  borderRadius: 14,
+  backgroundColor: 'rgba(103, 97, 39, 0.45)',
+  color: '#CFC4B2',
+  fontFamily: 'Aldrich',
+  fontSize: 11,
+  paddingHorizontal: 14,
+  marginBottom: 16,
+},
+
+profileMessage: {
+  color: '#CFC4B2',
+  fontSize: 9,
+  fontFamily: 'Aldrich',
+  textAlign: 'center',
+  marginBottom: 14,
+},
 });
