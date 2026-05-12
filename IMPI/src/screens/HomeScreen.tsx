@@ -1,6 +1,7 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFonts } from 'expo-font';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import * as Location from 'expo-location';
 
 import TrackIcon from '../../assets/images/trackIcon.svg';
 import FieldGuideIcon from '../../assets/images/fieldguideIcon.svg';
@@ -13,6 +14,71 @@ export default function HomeScreen() {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
+
+  const [weatherText, setWeatherText] = useState('WEATHER CONDITIONS: LOADING...');
+  const [patrolZone, setPatrolZone] = useState('PATROL ZONE: LOADING...');
+
+  useEffect(() => {
+    async function loadLocationAndWeather() {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== 'granted') {
+      setWeatherText('WEATHER CONDITIONS: LOCATION DISABLED');
+      setPatrolZone('PATROL ZONE: LOCATION DISABLED');
+      return;
+    }
+
+    const location = await Location.getCurrentPositionAsync({});
+    const { latitude, longitude } = location.coords;
+
+    const places = await Location.reverseGeocodeAsync({
+      latitude,
+      longitude,
+    });
+
+    const place = places[0];
+
+    const area =
+        place?.city ||
+        place?.district ||
+        place?.subregion ||
+        place?.region ||
+        'CURRENT LOCATION';
+
+        const region = place?.region || '';
+
+        let provinceCode = '';
+
+        if (region.includes('Gauteng')) provinceCode = 'GP';
+        else if (region.includes('Western Cape')) provinceCode = 'WC';
+        else if (region.includes('KwaZulu-Natal')) provinceCode = 'KZN';
+        else if (region.includes('Eastern Cape')) provinceCode = 'EC';
+        else if (region.includes('Free State')) provinceCode = 'FS';
+        else if (region.includes('Limpopo')) provinceCode = 'LP';
+        else if (region.includes('Mpumalanga')) provinceCode = 'MP';
+        else if (region.includes('North West')) provinceCode = 'NW';
+        else if (region.includes('Northern Cape')) provinceCode = 'NC';
+
+        setPatrolZone(
+        `PATROL ZONE: ${area.toUpperCase()}, ${provinceCode}`
+    );
+
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`
+    );
+
+    const data = await response.json();
+
+    const temperature = Math.round(data.current.temperature_2m);
+    const windSpeed = Math.round(data.current.wind_speed_10m);
+
+    setWeatherText(
+      `WEATHER CONDITIONS: ${temperature}° | WIND ${windSpeed} KM/H`
+    );
+  }
+
+  loadLocationAndWeather();
+  }, []);
 
   if (!fontsLoaded) {
     return null;
@@ -65,13 +131,13 @@ export default function HomeScreen() {
 
         <View style={styles.infoBar}>
           <Text style={styles.infoText}>
-            WEATHER CONDITIONS: 28° | DRY | MODERATE WIND
+            {weatherText}
           </Text>
         </View>
 
         <View style={styles.infoBar}>
           <Text style={styles.infoText}>
-            PATROL ZONE: LIMPOPO EAST
+            {patrolZone}
           </Text>
         </View>
 
