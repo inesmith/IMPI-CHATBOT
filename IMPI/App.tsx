@@ -31,7 +31,7 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setNetworkStatus('Connected to field network...');
+      setNetworkStatus('Connected.');
 
       setTimeout(() => {
         if (user) {
