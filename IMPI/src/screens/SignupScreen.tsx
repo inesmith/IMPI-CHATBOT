@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useFonts } from 'expo-font';
-
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../services/firebaseConfig';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
@@ -10,6 +13,52 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
+
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignup = async () => {
+    setMessage('');
+
+    if (!username || !email || !phoneNumber || !password || !confirmPassword) {
+      setMessage('PLEASE FILL IN ALL FIELDS.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage('PASSWORDS DO NOT MATCH.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
+
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        username: username.trim(),
+        email: email.trim(),
+        phoneNumber: phoneNumber.trim(),
+        createdAt: new Date(),
+      });
+
+      setCurrentScreen('home');
+    } catch (error: any) {
+      setMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!fontsLoaded) {
     return null;
@@ -38,18 +87,27 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
             style={styles.input}
             placeholder="USERNAME"
             placeholderTextColor="#CFC4B2"
+            value={username}
+            onChangeText={setUsername}
           />
 
           <TextInput
             style={styles.input}
             placeholder="EMAIL ADDRESS"
             placeholderTextColor="#CFC4B2"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
 
           <TextInput
             style={styles.input}
             placeholder="PHONE NUMBER"
             placeholderTextColor="#CFC4B2"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
           />
 
           <TextInput
@@ -57,6 +115,8 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
             placeholder="PASSWORD"
             placeholderTextColor="#CFC4B2"
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
           />
 
           <TextInput
@@ -64,13 +124,22 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
             placeholder="CONFIRM PASSWORD"
             placeholderTextColor="#CFC4B2"
             secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
           />
+
+          {message ? (
+            <Text style={styles.messageText}>{message}</Text>
+          ) : null}
 
           <TouchableOpacity
             style={styles.signupButton}
-            onPress={() => setCurrentScreen('home')}
+            onPress={handleSignup}
+            disabled={isLoading}
           >
-            <Text style={styles.signupButtonText}>SIGN UP</Text>
+            <Text style={styles.signupButtonText}>
+              {isLoading ? 'SIGNING UP...' : 'SIGN UP'}
+            </Text>
           </TouchableOpacity>
 
           <Text style={styles.loginText}>
@@ -149,7 +218,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(103, 97, 39, 0.32)',
     color: '#CFC4B2',
     fontFamily: 'Aldrich',
-    fontSize: 10,
+    fontSize: 12,
     paddingHorizontal: 18,
     marginBottom: 14,
     justifyContent: 'center',
@@ -165,43 +234,51 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
-  signupButton: {
-  width: 150,
-  height: 42,
-  borderRadius: 14,
-  backgroundColor: 'rgba(103, 97, 39, 0.32)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginTop: 25,
-
-  shadowColor: '#000',
-  shadowOffset: {
-    width: 0,
-    height: 4,
+  messageText: {
+    color: '#CFC4B2',
+    fontSize: 9,
+    fontFamily: 'Aldrich',
+    textAlign: 'center',
+    marginTop: 4,
   },
-  shadowOpacity: 0.40,
-  shadowRadius: 8,
 
-  elevation: 6,
-},
+  signupButton: {
+    width: 150,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: 'rgba(103, 97, 39, 0.32)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 25,
 
-signupButtonText: {
-  color: '#CFC4B2',
-  fontSize: 12,
-  fontFamily: 'Aldrich',
-  letterSpacing: 1,
-},
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.40,
+    shadowRadius: 8,
 
-loginText: {
-  color: '#CFC4B2',
-  fontSize: 10,
-  fontFamily: 'Aldrich',
-  textAlign: 'center',
-  marginTop: 40,
-  lineHeight: 16,
-},
+    elevation: 6,
+  },
 
-underline: {
-  textDecorationLine: 'underline',
-},
+  signupButtonText: {
+    color: '#CFC4B2',
+    fontSize: 12,
+    fontFamily: 'Aldrich',
+    letterSpacing: 1,
+  },
+
+  loginText: {
+    color: '#CFC4B2',
+    fontSize: 10,
+    fontFamily: 'Aldrich',
+    textAlign: 'center',
+    marginTop: 40,
+    lineHeight: 16,
+  },
+
+  underline: {
+    textDecorationLine: 'underline',
+  },
 });

@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useFonts } from 'expo-font';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../services/firebaseConfig';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
@@ -9,6 +12,52 @@ export default function LoginScreen({ setCurrentScreen }: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setMessage('');
+
+    if (!email || !password) {
+      setMessage('PLEASE FILL IN ALL FIELDS.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      await signInWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
+
+      setCurrentScreen('home');
+    } catch (error: any) {
+      setMessage('ACCOUNT NOT FOUND OR PASSWORD INCORRECT.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setMessage('');
+
+    if (!email) {
+      setMessage('PLEASE ENTER YOUR EMAIL FIRST.');
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setMessage('PASSWORD RESET EMAIL SENT.');
+    } catch (error: any) {
+      setMessage('COULD NOT SEND RESET EMAIL.');
+    }
+  };
 
   if (!fontsLoaded) {
     return null;
@@ -37,6 +86,10 @@ export default function LoginScreen({ setCurrentScreen }: Props) {
             style={styles.input}
             placeholder="USERNAME OR EMAIL"
             placeholderTextColor="#CFC4B2"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
 
           <TextInput
@@ -44,15 +97,29 @@ export default function LoginScreen({ setCurrentScreen }: Props) {
             placeholder="PASSWORD"
             placeholderTextColor="#CFC4B2"
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
           />
 
-          <Text style={styles.forgotText}>FORGOT PASSWORD?</Text>
+          <Text
+            style={styles.forgotText}
+            onPress={handleForgotPassword}
+          >
+            FORGOT PASSWORD?
+          </Text>
+
+          {message ? (
+            <Text style={styles.messageText}>{message}</Text>
+          ) : null}
 
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => setCurrentScreen('home')}
+            onPress={handleLogin}
+            disabled={isLoading}
           >
-            <Text style={styles.loginButtonText}>LOG IN</Text>
+            <Text style={styles.loginButtonText}>
+              {isLoading ? 'LOGGING IN...' : 'LOG IN'}
+            </Text>
           </TouchableOpacity>
 
           <Text style={styles.signupText}>
@@ -131,7 +198,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(103, 97, 39, 0.32)',
     color: '#CFC4B2',
     fontFamily: 'Aldrich',
-    fontSize: 10,
+    fontSize: 12,
     paddingHorizontal: 18,
     marginBottom: 18,
     justifyContent: 'center',
@@ -154,6 +221,16 @@ const styles = StyleSheet.create({
     marginRight: 5,
     fontFamily: 'Aldrich',
     marginTop: 0,
+    marginBottom: 14,
+  },
+
+  messageText: {
+    color: '#CFC4B2',
+    fontSize: 9,
+    fontFamily: 'Aldrich',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: -20,
   },
 
   loginButton: {
