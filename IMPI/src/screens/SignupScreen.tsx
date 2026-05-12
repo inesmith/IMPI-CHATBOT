@@ -30,6 +30,25 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const cleanedPhoneNumber = phoneNumber.replace(/\D/g, '');
+    const phoneRegex = /^[0-9]{10}$/;
+
+    if (!emailRegex.test(email.trim())) {
+      setMessage('INVALID EMAIL ADDRESS.');
+      return;
+    }
+
+    if (!phoneRegex.test(cleanedPhoneNumber)) {
+      setMessage('PHONE NUMBER MUST BE 10 DIGITS.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setMessage('PASSWORD MUST BE AT LEAST 6 CHARACTERS.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setMessage('PASSWORDS DO NOT MATCH.');
       return;
@@ -48,13 +67,21 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
         uid: userCredential.user.uid,
         username: username.trim(),
         email: email.trim(),
-        phoneNumber: phoneNumber.trim(),
+        phoneNumber: cleanedPhoneNumber,
         createdAt: new Date(),
       });
 
       setCurrentScreen('home');
     } catch (error: any) {
-      setMessage(error.message);
+      if (error.code === 'auth/invalid-email') {
+        setMessage('INVALID EMAIL ADDRESS.');
+      } else if (error.code === 'auth/email-already-in-use') {
+        setMessage('RANGER PROFILE ALREADY EXISTS.');
+      } else if (error.code === 'auth/weak-password') {
+        setMessage('PASSWORD MUST BE AT LEAST 6 CHARACTERS.');
+      } else {
+        setMessage('SIGN UP FAILED. PLEASE TRY AGAIN.');
+      }
     } finally {
       setIsLoading(false);
     }

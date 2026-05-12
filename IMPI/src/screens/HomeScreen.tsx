@@ -2,9 +2,9 @@ import { Image, Modal, StyleSheet, Text, TouchableOpacity, View, Alert, TextInpu
 import { useFonts } from 'expo-font';
 import { useEffect, useMemo, useState } from 'react';
 import * as Location from 'expo-location';
-import { signOut, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebaseConfig';
+import { signOut, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 
 import TrackIcon from '../../assets/images/trackIcon.svg';
 import FieldGuideIcon from '../../assets/images/fieldguideIcon.svg';
@@ -15,6 +15,19 @@ import Arrow from '../../assets/images/arrow.svg';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
+};
+
+const getWeatherCondition = (code: number) => {
+  if (code === 0) return 'CLEAR';
+  if ([1, 2, 3].includes(code)) return 'PARTLY CLOUDY';
+  if ([45, 48].includes(code)) return 'FOG';
+  if ([51, 53, 55, 56, 57].includes(code)) return 'DRIZZLE';
+  if ([61, 63, 65, 66, 67].includes(code)) return 'RAIN';
+  if ([71, 73, 75, 77].includes(code)) return 'SNOW';
+  if ([80, 81, 82].includes(code)) return 'RAIN SHOWERS';
+  if ([95, 96, 99].includes(code)) return 'THUNDERSTORM';
+
+  return 'UNKNOWN';
 };
 
 export default function HomeScreen({ setCurrentScreen }: Props) {
@@ -33,6 +46,9 @@ export default function HomeScreen({ setCurrentScreen }: Props) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
+
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteMessage, setDeleteMessage] = useState('');
 
   useEffect(() => {
     async function loadLocationAndWeather() {
@@ -87,9 +103,10 @@ export default function HomeScreen({ setCurrentScreen }: Props) {
 
     const temperature = Math.round(data.current.temperature_2m);
     const windSpeed = Math.round(data.current.wind_speed_10m);
+    const condition = getWeatherCondition(data.current.weather_code);
 
     setWeatherText(
-      `WEATHER CONDITIONS: ${temperature}° | WIND ${windSpeed} KM/H`
+    `WEATHER CONDITIONS: ${temperature}° | ${condition} | WIND ${windSpeed} KM/H`
     );
   }
 
@@ -125,34 +142,35 @@ export default function HomeScreen({ setCurrentScreen }: Props) {
 };
 
 const handleDeleteAccount = () => {
-    Alert.alert(
-        'Delete Account',
-        'Are you sure you want to delete your IMPI account? This cannot be undone.',
-        [
-        {
-            text: 'Cancel',
-            style: 'cancel',
-        },
-        {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-            const user = auth.currentUser;
+  setDeleteMessage('');
 
-            if (!user) {
-                return;
-            }
+  Alert.prompt(
+    'Confirm Password',
+    'Enter your password to permanently delete your IMPI account.',
+    async (password) => {
+      const user = auth.currentUser;
 
-            await deleteDoc(doc(db, 'users', user.uid));
-            await deleteUser(user);
+      if (!user || !user.email || !password) {
+        setDeleteMessage('DELETE FAILED. PASSWORD REQUIRED.');
+        return;
+      }
 
-            setMenuVisible(false);
-            setCurrentScreen('login');
-            },
-        },
-        ]
-    );
-  };
+      try {
+        const credential = EmailAuthProvider.credential(user.email, password);
+
+        await reauthenticateWithCredential(user, credential);
+        await deleteDoc(doc(db, 'users', user.uid));
+        await deleteUser(user);
+
+        setMenuVisible(false);
+        setCurrentScreen('landing');
+      } catch (error: any) {
+        setDeleteMessage('PASSWORD INCORRECT. ACCOUNT NOT DELETED.');
+      }
+    },
+    'secure-text'
+  );
+};
 
   const handleSaveProfile = async () => {
     if (!auth.currentUser) {
