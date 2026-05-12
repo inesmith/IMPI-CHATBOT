@@ -88,7 +88,8 @@ const styles = StyleSheet.create({
 
   cardBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(103, 97, 39, 0.32)',
+    backgroundColor: '#676127',
+    opacity: 0.32,
   },
 
   dust: {
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontFamily: 'Aldrich',
-    color: '#F4F1EA',
+    color: '#CFC4B2',
     fontSize: 23,
     letterSpacing: 2,
     marginTop: 2,
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
   },
 
   loginButtonText: {
-    color: '#F4F1EA',
+    color: '#CFC4B2',
     fontSize: 12,
     fontFamily: 'Aldrich',
     letterSpacing: 1,
