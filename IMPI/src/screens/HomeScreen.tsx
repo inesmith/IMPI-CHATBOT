@@ -1,5 +1,6 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFonts } from 'expo-font';
+import { useMemo } from 'react';
 
 import TrackIcon from '../../assets/images/trackIcon.svg';
 import FieldGuideIcon from '../../assets/images/fieldguideIcon.svg';
@@ -16,6 +17,20 @@ export default function HomeScreen() {
   if (!fontsLoaded) {
     return null;
   }
+
+  const greetingText = useMemo(() => {
+    const hour = new Date().getHours();
+
+    if (hour < 12) {
+        return 'Good Morning, Ranger';
+    }
+
+    if (hour < 18) {
+        return 'Good Afternoon, Ranger';
+    }
+
+    return 'Good Evening, Ranger';
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -41,7 +56,7 @@ export default function HomeScreen() {
             />
 
             <Text style={styles.greeting}>
-                Good Morning, Ranger
+                {greetingText}
             </Text>
 
             </View>
