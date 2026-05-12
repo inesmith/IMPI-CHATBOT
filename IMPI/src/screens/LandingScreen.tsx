@@ -1,7 +1,11 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useFonts } from 'expo-font';
 
-export default function LandingScreen() {
+type Props = {
+  networkStatus: string;
+};
+
+export default function LandingScreen({ networkStatus }: Props) {
 
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
@@ -34,7 +38,7 @@ export default function LandingScreen() {
         </Text>
 
         <Text style={styles.networkText}>
-        Connecting to field network…
+        {networkStatus}
         </Text>
 
       </View>

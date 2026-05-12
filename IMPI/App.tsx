@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Asset } from 'expo-asset';
+import { onAuthStateChanged } from 'firebase/auth';
+
+import { auth } from './src/services/firebaseConfig';
 
 import LandingScreen from './src/screens/LandingScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -9,6 +12,9 @@ import HomeScreen from './src/screens/HomeScreen';
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('landing');
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [networkStatus, setNetworkStatus] = useState(
+    'Connecting to field network…'
+  );
 
   useEffect(() => {
     async function loadAssets() {
@@ -24,11 +30,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentScreen('login');
-    }, 3500);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setNetworkStatus('Connected to field network...');
 
-    return () => clearTimeout(timer);
+      setTimeout(() => {
+        if (user) {
+          setCurrentScreen('home');
+        } else {
+          setCurrentScreen('login');
+        }
+      }, 2500);
+    });
+
+    return unsubscribe;
   }, []);
 
   if (!assetsLoaded) {
@@ -47,5 +61,5 @@ export default function App() {
     return <LoginScreen setCurrentScreen={setCurrentScreen} />;
   }
 
-  return <LandingScreen />;
+  return <LandingScreen networkStatus={networkStatus} />;
 }
