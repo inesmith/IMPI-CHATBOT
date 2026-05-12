@@ -253,7 +253,10 @@ const handleDeleteAccount = () => {
 
         <View style={styles.cardSection}>
 
-          <TouchableOpacity style={styles.mainCard}>
+          <TouchableOpacity
+            style={styles.mainCard}
+            onPress={() => setCurrentScreen('impiChatMenu')}
+          >
             <Arrow
                 width={30}
                 height={30}

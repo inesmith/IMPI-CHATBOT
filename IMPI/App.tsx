@@ -4,6 +4,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 import { auth } from './src/services/firebaseConfig';
 
+import TalkWithImpiScreen from './src/screens/TalkWithImpiScreen';
+import ImpiChatMenuScreen from './src/screens/ImpiChatMenuScreen';
+
 import LandingScreen from './src/screens/LandingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
@@ -51,6 +54,14 @@ export default function App() {
 
   if (currentScreen === 'signup') {
     return <SignupScreen setCurrentScreen={setCurrentScreen} />;
+  }
+
+  if (currentScreen === 'impiChatMenu') {
+    return <ImpiChatMenuScreen setCurrentScreen={setCurrentScreen} />;
+  }
+
+  if (currentScreen === 'talkWithImpi') {
+    return <TalkWithImpiScreen setCurrentScreen={setCurrentScreen} />;
   }
 
   if (currentScreen === 'home') {
