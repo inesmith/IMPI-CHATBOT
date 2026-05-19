@@ -1,6 +1,7 @@
-import { Image, Modal, StyleSheet, Text, TouchableOpacity, View, Alert, TextInput } from 'react-native';
+import { Animated, Image, Modal, PanResponder, Pressable, StyleSheet, Text, TouchableOpacity, View, Alert, TextInput, Keyboard } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { useFonts } from 'expo-font';
-import { useEffect, useMemo, useState } from 'react';
 import * as Location from 'expo-location';
 import { doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebaseConfig';
@@ -87,6 +88,10 @@ export default function HomeScreen({ setCurrentScreen }: Props) {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteMessage, setDeleteMessage] = useState('');
 
+  const [profileImage, setProfileImage] = useState('');
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  const [cardFlipped, setCardFlipped] = useState(false);
+
   useEffect(() => {
   async function loadLocationAndWeather() {
     try {
@@ -172,26 +177,87 @@ export default function HomeScreen({ setCurrentScreen }: Props) {
 }, []);
 
   useEffect(() => {
-    async function loadUserData() {
-        if (!auth.currentUser) {
-        return;
-        }
-
-        const userDoc = await getDoc(
-        doc(db, 'users', auth.currentUser.uid)
-        );
-
-        if (userDoc.exists()) {
-        const data = userDoc.data();
-
-        setUsername(data.username || '');
-        setEmail(data.email || '');
-        setPhoneNumber(data.phoneNumber || '');
-        }
+  async function loadUserData() {
+    if (!auth.currentUser) {
+      return;
     }
 
-    loadUserData();
-  }, []);
+    const userDoc = await getDoc(
+      doc(db, 'users', auth.currentUser.uid)
+    );
+
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+
+      setUsername(data.username || '');
+      setEmail(data.email || '');
+      setPhoneNumber(data.phoneNumber || '');
+      setProfileImage(data.profileImage || '');
+    }
+  }
+
+  loadUserData();
+}, []);
+  
+const flipCard = () => {
+    Animated.timing(flipAnim, {
+      toValue: cardFlipped ? 0 : 1,
+      duration: 450,
+      useNativeDriver: true,
+    }).start();
+
+    setCardFlipped(!cardFlipped);
+  };
+
+  const resetCardToFront = () => {
+    Animated.timing(flipAnim, {
+      toValue: 0,
+      duration: 350,
+      useNativeDriver: true,
+    }).start();
+
+    setCardFlipped(false);
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 25,
+
+      onPanResponderRelease: () => {
+        flipCard();
+      },
+    })
+  ).current;
+
+  const pickProfileImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      setProfileMessage('IMAGE PERMISSION DENIED.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64 && auth.currentUser) {
+      const imageData = `data:image/jpeg;base64,${result.assets[0].base64}`;
+
+      setProfileImage(imageData);
+
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        profileImage: imageData,
+      });
+
+      setProfileMessage('IMAGE UPDATED.');
+    }
+  };
 
   const handleLogout = async () => {
   await signOut(auth);
@@ -231,19 +297,19 @@ const handleDeleteAccount = () => {
 };
 
   const handleSaveProfile = async () => {
-    if (!auth.currentUser) {
-        return;
-    }
+  if (!auth.currentUser) {
+    return;
+  }
 
-    await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        username: username.trim(),
-        email: email.trim(),
-        phoneNumber: phoneNumber.trim(),
-    });
+  await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+    username: username.trim(),
+    email: email.trim(),
+    phoneNumber: phoneNumber.trim(),
+  });
 
-    setProfileMessage('PROFILE UPDATED.');
-    setIsEditing(false);
-  };
+  setIsEditing(false);
+  resetCardToFront();
+};
 
   if (!fontsLoaded) {
     return null;
@@ -468,98 +534,136 @@ const handleDeleteAccount = () => {
 
         
 
-      <Modal
-        visible={menuVisible}
-        transparent
-        animationType="fade"
-        >
-        <View style={styles.modalOverlay}>
+      <Modal visible={menuVisible} transparent animationType="fade">
+      <Pressable
+        style={styles.modalOverlay}
+        onPress={() => setMenuVisible(false)}
+      >
+        <Image
+          source={require('../../assets/images/dust.png')}
+          style={styles.dust}
+          resizeMode="cover"
+        />
 
-            <Image
-            source={require('../../assets/images/dust.png')}
-            style={styles.dust}
-            resizeMode="cover"
-            />
+        <Pressable onPress={(event) => event.stopPropagation()}>
+          <Animated.View
+            {...panResponder.panHandlers}
+            style={[
+              styles.rangerCard,
+              {
+                transform: [
+                  { perspective: 1000 },
+                  {
+                    rotateY: flipAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '180deg'],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            {!cardFlipped ? (
+              <View>
+                <Text style={styles.cardTitle}>WILDLIFE RANGER</Text>
 
-            <View style={styles.modalCard}>
-            <View style={styles.modalBackground} />
-
-            <Text style={styles.modalTitle}>RANGER PROFILE SETTINGS</Text>
-
-            <Text style={styles.modalLabel}>USERNAME</Text>
-                {isEditing ? (
-                <TextInput
-                    style={styles.modalInput}
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="USERNAME"
-                    placeholderTextColor="#CFC4B2"
-                />
+                {profileImage ? (
+                  <View style={styles.profileImageBox}>
+                    <Image
+                      source={{ uri: profileImage }}
+                      style={styles.profileImage}
+                    />
+                  </View>
                 ) : (
-                <Text style={styles.modalValue}>{username || 'Not available'}</Text>
+                  <TouchableOpacity
+                    style={styles.profileImageBox}
+                    onPress={pickProfileImage}
+                  >
+                    <Text style={styles.uploadText}>UPLOAD IMAGE</Text>
+                  </TouchableOpacity>
                 )}
+
+                <View style={styles.profileRow}>
+                  <Text style={styles.profileLabel}>USERNAME</Text>
+                  <Text style={styles.profileValue}>{username || 'Not available'}</Text>
+                </View>
+
+                <View style={styles.profileRow}>
+                  <Text style={styles.profileLabel}>EMAIL</Text>
+                  <Text style={styles.profileValue}>{email || 'Not available'}</Text>
+                </View>
+
+                <View style={styles.profileRow}>
+                  <Text style={styles.profileLabel}>PHONE</Text>
+                  <Text style={styles.profileValue}>{phoneNumber || 'Not available'}</Text>
+                </View>
+
+                <TouchableOpacity style={styles.flipButton} onPress={flipCard}>
+                  <Text style={styles.flipButtonText}>EDIT CARD</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.cardBack}>
+                <Text style={styles.cardTitle}>RANGER SETTINGS</Text>
+
+                <TouchableOpacity style={styles.editImageButton} onPress={pickProfileImage}>
+                  <Text style={styles.modalButtonText}>EDIT IMAGE</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.modalLabel}>USERNAME</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder="USERNAME"
+                  placeholderTextColor="#CFC4B2"
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
+                />
 
                 <Text style={styles.modalLabel}>EMAIL</Text>
-                {isEditing ? (
                 <TextInput
-                    style={styles.modalInput}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="EMAIL"
-                    placeholderTextColor="#CFC4B2"
-                    autoCapitalize="none"
-                    keyboardType="email-address"
+                  style={styles.modalInput}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="EMAIL"
+                  placeholderTextColor="#CFC4B2"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
                 />
-                ) : (
-                <Text style={styles.modalValue}>{email || 'Not available'}</Text>
-                )}
 
                 <Text style={styles.modalLabel}>PHONE</Text>
-                {isEditing ? (
                 <TextInput
-                    style={styles.modalInput}
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    placeholder="PHONE"
-                    placeholderTextColor="#CFC4B2"
-                    keyboardType="phone-pad"
+                  style={styles.modalInput}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  placeholder="PHONE"
+                  placeholderTextColor="#CFC4B2"
+                  keyboardType="phone-pad"
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
                 />
-                ) : (
-                <Text style={styles.modalValue}>{phoneNumber || 'Not available'}</Text>
-                )}
 
-            <Text style={styles.modalStatus}>FIELD NETWORK: ONLINE</Text>
+                <TouchableOpacity style={styles.modalButton} onPress={handleLogout}>
+                  <Text style={styles.modalButtonText}>LOG OUT</Text>
+                </TouchableOpacity>
 
-            {profileMessage ? (
-            <Text style={styles.profileMessage}>{profileMessage}</Text>
-            ) : null}
+                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+                  <Text style={styles.deleteButtonText}>DELETE ACCOUNT</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-            style={styles.modalButton}
-            onPress={isEditing ? handleSaveProfile : () => setIsEditing(true)}
-            >
-            <Text style={styles.modalButtonText}>
-                {isEditing ? 'SAVE DETAILS' : 'EDIT DETAILS'}
-            </Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
+                  <Text style={styles.modalButtonText}>SAVE DETAILS</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.modalButton} onPress={handleLogout}>
-                <Text style={styles.modalButtonText}>LOG OUT</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
-                <Text style={styles.deleteButtonText}>DELETE ACCOUNT</Text>
-            </TouchableOpacity>
-
-            <Text
-                style={styles.closeText}
-                onPress={() => setMenuVisible(false)}
-            >
-                CLOSE
-            </Text>
-            </View>
-        </View>
-      </Modal>
+              </View>
+            )}
+          </Animated.View>
+        </Pressable>
+      </Pressable>
+    </Modal>
     </View>
   );
 }
@@ -948,7 +1052,7 @@ modalStatus: {
 modalButton: {
   height: 44,
   borderRadius: 14,
-  backgroundColor: 'rgba(103, 97, 39, 0.45)',
+  backgroundColor: 'rgba(103, 97, 39, 0.38)',
   justifyContent: 'center',
   alignItems: 'center',
   marginBottom: 14,
@@ -973,7 +1077,7 @@ modalButtonText: {
 deleteButton: {
   height: 44,
   borderRadius: 14,
-  backgroundColor: 'rgba(68, 40, 39, 0.65)',
+  backgroundColor: 'rgba(103, 97, 39, 0.38)',
   justifyContent: 'center',
   alignItems: 'center',
   marginBottom: 22,
@@ -995,19 +1099,11 @@ deleteButtonText: {
   letterSpacing: 1,
 },
 
-closeText: {
-  color: '#CFC4B2',
-  fontSize: 10,
-  fontFamily: 'Aldrich',
-  textAlign: 'center',
-  textDecorationLine: 'underline',
-},
-
 modalInput: {
   width: '100%',
   height: 42,
   borderRadius: 14,
-  backgroundColor: 'rgba(103, 97, 39, 0.45)',
+  backgroundColor: 'rgba(25, 24, 24, 0.45)',
   color: '#CFC4B2',
   fontFamily: 'Aldrich',
   fontSize: 11,
@@ -1021,5 +1117,134 @@ profileMessage: {
   fontFamily: 'Aldrich',
   textAlign: 'center',
   marginBottom: 14,
+},
+
+rangerCard: {
+  width: 330,
+  minHeight: 520,
+  borderRadius: 24,
+  backgroundColor: 'rgba(103, 97, 39, 0.38)',
+  borderWidth: 2,
+  borderColor: 'rgba(207, 196, 178, 0.25)',
+  padding: 22,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.45,
+  shadowRadius: 12,
+  elevation: 8,
+  backfaceVisibility: 'visible',
+},
+
+cardBack: {
+  transform: [{ rotateY: '180deg' }],
+},
+
+cardTitle: {
+  color: '#F4F1EA',
+  fontSize: 24,
+  fontFamily: 'Aldrich',
+  letterSpacing: 1.5,
+  marginBottom: 18,
+  textAlign: 'center',
+},
+
+profileImageBox: {
+  width: '100%',
+  height: 230,
+  borderRadius: 18,
+  borderWidth: 2,
+  borderColor: 'rgba(207, 196, 178, 0.3)',
+  backgroundColor: 'rgba(25, 24, 24, 0.55)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 18,
+  overflow: 'hidden',
+},
+
+profileImage: {
+  width: '100%',
+  height: '100%',
+},
+
+uploadText: {
+  color: '#CFC4B2',
+  fontSize: 12,
+  fontFamily: 'Aldrich',
+  letterSpacing: 1,
+},
+
+profileRow: {
+  backgroundColor: 'rgba(25, 24, 24, 0.45)',
+  borderRadius: 12,
+  padding: 10,
+  marginBottom: 8,
+},
+
+profileLabel: {
+  color: '#CFC4B2',
+  fontSize: 8,
+  fontFamily: 'Aldrich',
+  letterSpacing: 1,
+  marginBottom: 4,
+},
+
+profileValue: {
+  color: '#F4F1EA',
+  fontSize: 11,
+  fontFamily: 'Aldrich',
+},
+
+flipHint: {
+  color: '#CFC4B2',
+  fontSize: 9,
+  fontFamily: 'Aldrich',
+  textAlign: 'center',
+  marginTop: 16,
+  marginBottom: 10,
+},
+
+flipButton: {
+  height: 40,
+  borderRadius: 14,
+  backgroundColor: 'rgba(128, 51, 7, 0.55)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginTop: 10,
+},
+
+flipButtonText: {
+  color: '#CFC4B2',
+  fontSize: 11,
+  fontFamily: 'Aldrich',
+  letterSpacing: 1,
+  marginTop: 2,
+},
+
+editImageButton: {
+  height: 42,
+  borderRadius: 14,
+  backgroundColor: 'rgba(25, 24, 24, 0.45)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 18,
+},
+
+saveButton: {
+  height: 44,
+  borderRadius: 14,
+  backgroundColor: '#8033077c',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 14,
+
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 4,
+  },
+  shadowOpacity: 0.40,
+  shadowRadius: 8,
+
+  elevation: 6,
 },
 });
