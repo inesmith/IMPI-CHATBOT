@@ -65,24 +65,21 @@ export default function ImpiChatMenuScreen({ setCurrentScreen }: Props) {
           style={styles.orangeButton}
           onPress={() => setCurrentScreen('talkWithImpi')}
         >
-          <Text style={styles.buttonText}>RECEIVE TRAINING</Text>
-          <Arrow width={24} height={24} />
+          <Text style={styles.buttonText}>ARMED & UNARMED LAW ENFORCEMENT</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.orangeButton}
           onPress={() => setCurrentScreen('talkWithImpi')}
         >
-          <Text style={styles.buttonText}>ASK WILDLIFE QUESTIONS</Text>
-          <Arrow width={24} height={24} />
+          <Text style={styles.buttonText}>ANTI-POACHING OPERATIONS</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.orangeButton}
           onPress={() => setCurrentScreen('talkWithImpi')}
         >
-          <Text style={styles.buttonText}>ASK SURVIVAL TRAINING</Text>
-          <Arrow width={24} height={24} />
+          <Text style={styles.buttonText}>CONSERVATION </Text>
         </TouchableOpacity>
 
         <TouchableOpacity

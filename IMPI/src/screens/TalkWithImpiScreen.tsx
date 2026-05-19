@@ -1,6 +1,10 @@
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View,  KeyboardAvoidingView, Platform, ScrollView, PanResponder, Keyboard, } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, ScrollView, PanResponder, Keyboard, Alert } from 'react-native';
 import { useFonts } from 'expo-font';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+
+import AttachIcon from '../../assets/images/attachIcon.svg';
+import SendIcon from '../../assets/images/sendIcon.svg';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
@@ -11,36 +15,100 @@ export default function TalkWithImpiScreen({ setCurrentScreen }: Props) {
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
 
-    const panResponder = PanResponder.create({
+  const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (_, gestureState) => {
-        return gestureState.dx > 20;
+      return gestureState.dx > 20;
     },
 
     onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx > 100) {
+      if (gestureState.dx > 100) {
         setCurrentScreen('impiChatMenu');
-        }
+      }
     },
   });
 
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [inputHeight, setInputHeight] = useState(40);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-        setKeyboardVisible(true);
+  const [messages, setMessages] = useState([
+    {
+      sender: 'impi',
+      text: 'Ranger, I am online. What do you need help with in the field?',
+      image: null,
+    },
+  ]);
+
+  const sendMessage = () => {
+    if (!message.trim()) return;
+
+    setMessages([
+      ...messages,
+      {
+        sender: 'user',
+        text: message,
+        image: null,
+      },
+    ]);
+
+    setMessage('');
+  };
+
+  const uploadImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
     });
 
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-        setKeyboardVisible(false);
+    if (!result.canceled) {
+      setMessages([
+        ...messages,
+        {
+          sender: 'user',
+          text: '',
+          image: result.assets[0].uri,
+        },
+      ]);
+    }
+  };
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (!permission.granted) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
     });
 
-    return () => {
-        showSubscription.remove();
-        hideSubscription.remove();
-    };
-  }, []);
+    if (!result.canceled) {
+      setMessages([
+        ...messages,
+        {
+          sender: 'user',
+          text: '',
+          image: result.assets[0].uri,
+        },
+      ]);
+    }
+  };
+
+  const chooseImageOption = () => {
+    Alert.alert('Attach image', 'Choose an option', [
+      {
+        text: 'Upload Image',
+        onPress: uploadImage,
+      },
+      {
+        text: 'Take Photo',
+        onPress: takePhoto,
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
+  };
 
   if (!fontsLoaded) {
     return null;
@@ -48,28 +116,26 @@ export default function TalkWithImpiScreen({ setCurrentScreen }: Props) {
 
   return (
     <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={10}
-        {...panResponder.panHandlers}
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={10}
+      {...panResponder.panHandlers}
     >
       <Image
         source={require('../../assets/images/dust.png')}
         style={styles.dust}
-        resizeMode="stretch"
+        resizeMode="cover"
       />
 
       <View style={styles.header}>
-
         <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => setCurrentScreen('impiChatMenu')}
+          style={styles.backButton}
+          onPress={() => setCurrentScreen('impiChatMenu')}
         >
-            <Text style={styles.backArrow}>‹</Text>
+          <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
 
         <Text style={styles.title}>TALK WITH IMPI</Text>
-
       </View>
 
       <View style={styles.rangerCard}>
@@ -87,45 +153,63 @@ export default function TalkWithImpiScreen({ setCurrentScreen }: Props) {
 
       <View style={styles.chatArea}>
         <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.chatContent}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.chatContent}
         >
-            <Text style={styles.messageLabel}>IMPI</Text>
-            <Text style={styles.messageText}>
-            Ranger, I am online. What do you need help with in the field?
-            </Text>
+          {messages.map((item, index) => (
+            <View
+              key={index}
+              style={[
+                styles.messageBubble,
+                item.sender === 'impi' ? styles.impiBubble : styles.userBubble,
+              ]}
+            >
+              {item.sender === 'impi' && (
+                <Text style={styles.messageLabel}>IMPI</Text>
+              )}
+
+              {item.image && (
+                <Image
+                  source={{ uri: item.image }}
+                  style={styles.chatImage}
+                  resizeMode="cover"
+                />
+              )}
+
+              {item.text ? (
+                <Text style={styles.messageText}>{item.text}</Text>
+              ) : null}
+            </View>
+          ))}
         </ScrollView>
       </View>
 
       <View style={styles.inputBar}>
         <TextInput
-            style={[
-                styles.input,
-                { height: Math.min(120, Math.max(40, message.split('\n').length * 22)) }
-            ]}
-            placeholder="ASK IMPI..."
-            placeholderTextColor="#CFC4B2"
-            multiline
-            blurOnSubmit={false}
-            returnKeyType="default"
-            value={message}
-            onChangeText={setMessage}
-            contextMenuHidden={false}
-            selectTextOnFocus
+          style={[
+            styles.input,
+            { height: Math.min(120, Math.max(40, message.split('\n').length * 22)) },
+          ]}
+          placeholder="ASK IMPI..."
+          placeholderTextColor="#CFC4B2"
+          multiline
+          blurOnSubmit={false}
+          returnKeyType="default"
+          value={message}
+          onChangeText={setMessage}
+          contextMenuHidden={false}
+          selectTextOnFocus
         />
 
-        {keyboardVisible ? (
-            <TouchableOpacity
-                style={styles.sendButton}
-                onPress={() => Keyboard.dismiss()}
-            >
-                <Text style={styles.sendText}>DONE</Text>
-            </TouchableOpacity>
-        ) : null}
-
-        <TouchableOpacity style={styles.sendButton}>
-          <Text style={styles.sendText}>SEND</Text>
+        <TouchableOpacity style={styles.attachButton} onPress={chooseImageOption}>
+          <AttachIcon width={24} height={24} />
         </TouchableOpacity>
+
+        {message.trim() ? (
+          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+            <SendIcon width={24} height={24} />
+          </TouchableOpacity>
+        ) : null}
       </View>
     </KeyboardAvoidingView>
   );
@@ -141,8 +225,12 @@ const styles = StyleSheet.create({
 
   dust: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: undefined,
+    height: undefined,
   },
 
   header: {
@@ -204,8 +292,6 @@ const styles = StyleSheet.create({
   chatArea: {
     flex: 1,
     borderRadius: 22,
-    backgroundColor: '#8033077c',
-    padding: 22,
     width: '95%',
     alignSelf: 'center',
     marginBottom: 20,
@@ -215,11 +301,31 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
+  messageBubble: {
+    maxWidth: '78%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    marginBottom: 14,
+  },
+
+  impiBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#191818',
+    borderTopLeftRadius: 4,
+  },
+
+  userBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#676127a3',
+    borderTopRightRadius: 4,
+  },
+
   messageLabel: {
     color: '#CFC4B2',
     fontSize: 11,
     fontFamily: 'Aldrich',
-    marginBottom: 12,
+    marginBottom: 8,
   },
 
   messageText: {
@@ -227,6 +333,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Aldrich',
     lineHeight: 24,
+  },
+
+  chatImage: {
+    width: 190,
+    height: 150,
+    borderRadius: 14,
   },
 
   inputBar: {
@@ -253,15 +365,15 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
 
-  sendButton: {
-    paddingHorizontal: 14,
+  attachButton: {
+    paddingHorizontal: 8,
     paddingVertical: 10,
+    marginBottom: 2,
   },
 
-  sendText: {
-    color: '#CFC4B2',
-    fontFamily: 'Aldrich',
-    fontSize: 11,
-    marginBottom: 4,
+  sendButton: {
+    paddingLeft: 8,
+    paddingVertical: 10,
+    marginBottom: 2,
   },
 });
