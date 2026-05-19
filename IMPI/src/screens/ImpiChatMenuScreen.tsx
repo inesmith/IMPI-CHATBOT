@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     color: '#CFC4B2',
     fontSize: 34,
     fontFamily: 'Aldrich',
-    marginTop: -10,
+    marginTop: -13,
     marginLeft: -2,
   },
 

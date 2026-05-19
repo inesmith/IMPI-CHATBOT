@@ -12,19 +12,54 @@ import ScannerIcon from '../../assets/images/scannerIcon.svg';
 import TrainingIcon from '../../assets/images/trainingIcon.svg';
 import TalkIcon from '../../assets/images/talkIcon.svg';
 import Arrow from '../../assets/images/arrow.svg';
+import SunnyClearIcon from '../../assets/images/sunnyClear.svg';
+import SunnyCloudyIcon from '../../assets/images/sunnyCloudy.svg';
+import CloudyIcon from '../../assets/images/cloudy.svg';
+import RainyIcon from '../../assets/images/rainy.svg';
+import SnowyIcon from '../../assets/images/snowy.svg';
+import MixedWeatherIcon from '../../assets/images/mixedWeather.svg';
+import ThunderstormIcon from '../../assets/images/thunderstorm.svg';
+import HailIcon from '../../assets/images/hail.svg';
+import NightCloudyIcon from '../../assets/images/nightCloudy.svg';
+import NightClearIcon from '../../assets/images/nightClear.svg';
+import LocationIcon from '../../assets/images/locationIcon.svg';
+
+const weatherIcons = {
+  CLEAR: SunnyClearIcon,
+  PARTLY_CLOUDY: SunnyCloudyIcon,
+  CLOUDY: CloudyIcon,
+  FOG: MixedWeatherIcon,
+  DRIZZLE: RainyIcon,
+  RAIN: RainyIcon,
+  SNOW: SnowyIcon,
+  RAIN_SHOWERS: RainyIcon,
+  THUNDERSTORM: ThunderstormIcon,
+  HAIL: HailIcon,
+  UNKNOWN: MixedWeatherIcon,
+  NIGHT_CLEAR: NightClearIcon,
+  NIGHT_CLOUDY: NightCloudyIcon,
+};
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
 };
 
-const getWeatherCondition = (code: number) => {
-  if (code === 0) return 'CLEAR';
-  if ([1, 2, 3].includes(code)) return 'PARTLY CLOUDY';
+const getWeatherCondition = (code: number, isNight: boolean) => {
+  if (code === 0) return isNight ? 'NIGHT_CLEAR' : 'CLEAR';
+
+  if ([1, 2].includes(code)) {
+    return isNight ? 'NIGHT_CLOUDY' : 'PARTLY_CLOUDY';
+  }
+
+  if (code === 3) {
+    return isNight ? 'NIGHT_CLOUDY' : 'CLOUDY';
+  }
+
   if ([45, 48].includes(code)) return 'FOG';
   if ([51, 53, 55, 56, 57].includes(code)) return 'DRIZZLE';
   if ([61, 63, 65, 66, 67].includes(code)) return 'RAIN';
   if ([71, 73, 75, 77].includes(code)) return 'SNOW';
-  if ([80, 81, 82].includes(code)) return 'RAIN SHOWERS';
+  if ([80, 81, 82].includes(code)) return 'RAIN_SHOWERS';
   if ([95, 96, 99].includes(code)) return 'THUNDERSTORM';
 
   return 'UNKNOWN';
@@ -35,7 +70,9 @@ export default function HomeScreen({ setCurrentScreen }: Props) {
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
 
-  const [weatherText, setWeatherText] = useState('WEATHER CONDITIONS: LOADING...');
+  const [weatherTemp, setWeatherTemp] = useState('LOADING...');
+  const [weatherWind, setWeatherWind] = useState('');
+  const [weatherIcon, setWeatherIcon] = useState(() => weatherIcons.UNKNOWN);
   const [patrolZone, setPatrolZone] = useState('PATROL ZONE: LOADING...');
 
   const [menuVisible, setMenuVisible] = useState(false);
@@ -51,67 +88,88 @@ export default function HomeScreen({ setCurrentScreen }: Props) {
   const [deleteMessage, setDeleteMessage] = useState('');
 
   useEffect(() => {
-    async function loadLocationAndWeather() {
-    const { status } = await Location.requestForegroundPermissionsAsync();
+  async function loadLocationAndWeather() {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
 
-    if (status !== 'granted') {
-      setWeatherText('WEATHER CONDITIONS: LOCATION DISABLED');
-      setPatrolZone('PATROL ZONE: LOCATION DISABLED');
-      return;
-    }
+      if (status !== 'granted') {
+        setWeatherIcon(() => weatherIcons.UNKNOWN);
+        setWeatherTemp('LOCATION DISABLED');
+        setWeatherWind('');
+        setPatrolZone('PATROL ZONE: LOCATION DISABLED');
+        return;
+      }
 
-    const location = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = location.coords;
+      const location = await Location.getLastKnownPositionAsync({});
 
-    const places = await Location.reverseGeocodeAsync({
-      latitude,
-      longitude,
-    });
+      if (!location) {
+        setWeatherIcon(() => weatherIcons.UNKNOWN);
+        setWeatherTemp('LOCATION UNAVAILABLE');
+        setWeatherWind('');
+        setPatrolZone('PATROL ZONE: LOCATION UNAVAILABLE');
+        return;
+      }
+      
+      const { latitude, longitude } = location.coords;
 
-    const place = places[0];
+      const places = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
 
-    const area =
+      const place = places[0];
+
+      const area =
         place?.city ||
         place?.district ||
         place?.subregion ||
         place?.region ||
         'CURRENT LOCATION';
 
-        const region = place?.region || '';
+      const region = place?.region || '';
 
-        let provinceCode = '';
+      let provinceCode = '';
 
-        if (region.includes('Gauteng')) provinceCode = 'GP';
-        else if (region.includes('Western Cape')) provinceCode = 'WC';
-        else if (region.includes('KwaZulu-Natal')) provinceCode = 'KZN';
-        else if (region.includes('Eastern Cape')) provinceCode = 'EC';
-        else if (region.includes('Free State')) provinceCode = 'FS';
-        else if (region.includes('Limpopo')) provinceCode = 'LP';
-        else if (region.includes('Mpumalanga')) provinceCode = 'MP';
-        else if (region.includes('North West')) provinceCode = 'NW';
-        else if (region.includes('Northern Cape')) provinceCode = 'NC';
+      if (region.includes('Gauteng')) provinceCode = 'GP';
+      else if (region.includes('Western Cape')) provinceCode = 'WC';
+      else if (region.includes('KwaZulu-Natal')) provinceCode = 'KZN';
+      else if (region.includes('Eastern Cape')) provinceCode = 'EC';
+      else if (region.includes('Free State')) provinceCode = 'FS';
+      else if (region.includes('Limpopo')) provinceCode = 'LP';
+      else if (region.includes('Mpumalanga')) provinceCode = 'MP';
+      else if (region.includes('North West')) provinceCode = 'NW';
+      else if (region.includes('Northern Cape')) provinceCode = 'NC';
 
-        setPatrolZone(
+      setPatrolZone(
         `PATROL ZONE: ${area.toUpperCase()}, ${provinceCode}`
-    );
+      );
 
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`
-    );
+      const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`
+      );
 
-    const data = await response.json();
+      const data = await response.json();
 
-    const temperature = Math.round(data.current.temperature_2m);
-    const windSpeed = Math.round(data.current.wind_speed_10m);
-    const condition = getWeatherCondition(data.current.weather_code);
+      const temperature = Math.round(data.current.temperature_2m);
+      const windSpeed = Math.round(data.current.wind_speed_10m);
+      const currentHour = new Date().getHours();
+      const isNight = currentHour < 6 || currentHour >= 18;
+      const condition = getWeatherCondition(data.current.weather_code, isNight);  
 
-    setWeatherText(
-    `WEATHER CONDITIONS: ${temperature}° | ${condition} | WIND ${windSpeed} KM/H`
-    );
+      setWeatherIcon(() => weatherIcons[condition as keyof typeof weatherIcons]);
+
+      setWeatherTemp(`${temperature}°C`);
+      setWeatherWind(`WIND ${windSpeed} KM/H`);
+    } catch (error) {
+        setWeatherIcon(() => weatherIcons.UNKNOWN);
+        setWeatherTemp('UNAVAILABLE');
+        setWeatherWind('');
+        setPatrolZone('PATROL ZONE: UNAVAILABLE');
+    }
   }
 
   loadLocationAndWeather();
-  }, []);
+}, []);
 
   useEffect(() => {
     async function loadUserData() {
@@ -205,6 +263,9 @@ const handleDeleteAccount = () => {
     return 'Good Evening, Ranger';
   }, []);
 
+  const WeatherIconComponent = weatherIcon;
+
+
   return (
     <View style={styles.container}>
 
@@ -240,16 +301,44 @@ const handleDeleteAccount = () => {
         </View>
 
         <View style={styles.infoBar}>
-          <Text style={styles.infoText}>
-            {weatherText}
-          </Text>
+            <View style={styles.weatherContent}>
+                <Text style={styles.infoText}>
+                WEATHER CONDITIONS: {weatherTemp}
+                </Text>
+
+                {weatherWind ? (
+                  <>
+                    <Text style={styles.infoText}>|</Text>
+
+                    <WeatherIconComponent
+                        width={15}
+                        height={15}
+                        style={styles.weatherIcon}
+                    />
+
+                    <Text style={styles.infoText}>|  {weatherWind}</Text>
+                  </>
+                ) : null}
+            </View>
         </View>
 
         <View style={styles.infoBar}>
+        <View style={styles.locationContent}>
           <Text style={styles.infoText}>
-            {patrolZone}
+            PATROL ZONE:
+          </Text>
+
+          <LocationIcon
+            width={14}
+            height={14}
+            style={styles.locationIcon}
+          />
+
+          <Text style={styles.infoText}>
+            {patrolZone.replace('PATROL ZONE: ', '')}
           </Text>
         </View>
+      </View>
 
         <View style={styles.cardSection}>
 
@@ -275,7 +364,10 @@ const handleDeleteAccount = () => {
           </TouchableOpacity>
 
           <View style={styles.sideCards}>
-            <TouchableOpacity style={styles.smallCardOrange}>
+            <TouchableOpacity
+                style={styles.smallCardOrange}
+                onPress={() => setCurrentScreen('trackAnalysis')}
+            >
               <Arrow
                 width={18}
                 height={18}
@@ -358,46 +450,18 @@ const handleDeleteAccount = () => {
         </Text>
 
         <TouchableOpacity style={styles.recentCard}>
-
-          <Arrow
-            width={30}
-            height={30}
-            style={styles.recentArrowIcon}
-          />
-
           <Text style={styles.recentText}>PREVIOUS CHATS</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.recentCard}>
-
-          <Arrow
-            width={30}
-            height={30}
-            style={styles.recentArrowIcon}
-          />
-
           <Text style={styles.recentText}>ANALYZED PATROLS</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.recentCard}>
-
-          <Arrow
-            width={30}
-            height={30}
-            style={styles.recentArrowIcon}
-          />
-
           <Text style={styles.recentText}>COMPLETED SPECIES</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.recentCard}>
-
-          <Arrow
-            width={30}
-            height={30}
-            style={styles.recentArrowIcon}
-          />
-
           <Text style={styles.recentText}>TRAINING SESSIONS</Text>
         </TouchableOpacity>
       </View>
@@ -609,7 +673,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 30,
     borderRadius: 16,
-    backgroundColor: '#676127a3',
+    backgroundColor: '#191818',
     justifyContent: 'center',
     paddingHorizontal: 18,
     marginBottom: 2,
@@ -632,6 +696,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginTop: 3,
   },
+
+  weatherContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+},
+
+  weatherIcon: {
+    width: 10,
+    height: 10,
+    marginTop: 1,
+  },
+
+  locationContent: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 8,
+},
+
+locationIcon: {
+  width: 14,
+  height: 14,
+  marginTop: 1,
+},
 
   cardSection: {
     flexDirection: 'row',
@@ -738,7 +826,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 50,
     borderRadius: 18,
-    backgroundColor: '#676127a3',
+    backgroundColor: '#846b1895',
     justifyContent: 'center',
     paddingHorizontal: 20,
     marginBottom: 42,
@@ -773,7 +861,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 50,
     borderRadius: 18,
-    backgroundColor: '#93562794',
+    backgroundColor: '#191818',
     justifyContent: 'center',
     paddingHorizontal: 22,
     marginBottom: 18,
@@ -793,7 +881,7 @@ const styles = StyleSheet.create({
     color: '#CFC4B2',
     fontSize: 14,
     fontFamily: 'Aldrich',
-    marginTop: -20,
+    marginTop: 5,
   },
 
   recentArrowIcon: {
