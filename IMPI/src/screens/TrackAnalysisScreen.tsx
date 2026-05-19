@@ -1,9 +1,12 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, PanResponder, ActivityIndicator } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, PanResponder, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { useFonts } from 'expo-font';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 
 import Arrow from '../../assets/images/arrow.svg';
+import Photo from '../../assets/images/add_a_photo.svg';
+import ImageIcon from '../../assets/images/add_image.svg';
+import Attach from '../../assets/images/attachIcon.svg';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
@@ -65,22 +68,46 @@ export default function TrackAnalysisScreen({ setCurrentScreen }: Props) {
   };
 
   const handleTakePhoto = async () => {
-  const permission = await ImagePicker.requestCameraPermissionsAsync();
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permission.granted) {
-        return;
+      return;
     }
 
     const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 1,
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 1,
     });
 
     if (!result.canceled) {
-        setSelectedImage(result.assets[0].uri);
-        setAnalysisDone(false);
+      setSelectedImage(result.assets[0].uri);
+      setAnalysisDone(false);
     }
+  };
+
+  const handleCancelImage = () => {
+    setSelectedImage(null);
+    setAnalysisDone(false);
+    setIsAnalyzing(false);
+    setScanStage('');
+  };
+
+  const handleChangeImage = () => {
+    Alert.alert('Change image', 'Choose an option', [
+      {
+        text: 'Retake Photo',
+        onPress: handleTakePhoto,
+      },
+      {
+        text: 'Replace Image',
+        onPress: handleUploadImage,
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
   };
 
   const handleAnalyzeTrack = () => {
@@ -89,28 +116,28 @@ export default function TrackAnalysisScreen({ setCurrentScreen }: Props) {
     setScanStage('SCANNING TRACK DEPTH...');
 
     setTimeout(() => {
-        setScanStage('MATCHING SPECIES...');
+      setScanStage('MATCHING SPECIES...');
     }, 700);
 
     setTimeout(() => {
-        setScanStage('ANALYZING MOVEMENT...');
+      setScanStage('ANALYZING MOVEMENT...');
     }, 1400);
 
     setTimeout(() => {
-        setScanStage('CALCULATING RISK...');
+      setScanStage('CALCULATING RISK...');
     }, 2100);
 
     setTimeout(() => {
-        setAnalysisResult({
+      setAnalysisResult({
         species: species[Math.floor(Math.random() * species.length)],
         age: ages[Math.floor(Math.random() * ages.length)],
         direction: directions[Math.floor(Math.random() * directions.length)],
         danger: dangerLevels[Math.floor(Math.random() * dangerLevels.length)],
-        });
+      });
 
-        setIsAnalyzing(false);
-        setAnalysisDone(true);
-        setScanStage('');
+      setIsAnalyzing(false);
+      setAnalysisDone(true);
+      setScanStage('');
     }, 2800);
   };
 
@@ -149,7 +176,7 @@ export default function TrackAnalysisScreen({ setCurrentScreen }: Props) {
           </Text>
         </View>
 
-        <View style={styles.scanArea}>
+        <View style={[styles.scanArea, selectedImage && styles.scanAreaWithImage]}>
           {selectedImage ? (
             <>
               <Image
@@ -168,7 +195,7 @@ export default function TrackAnalysisScreen({ setCurrentScreen }: Props) {
           ) : (
             <>
               <Text style={styles.scanTitle}>
-                DROP TRACK IMAGE{'\n'}
+                ADD TRACK IMAGE{'\n'}
                 FOR ANALYSIS
               </Text>
 
@@ -180,65 +207,85 @@ export default function TrackAnalysisScreen({ setCurrentScreen }: Props) {
           )}
         </View>
 
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity style={styles.orangeButton} onPress={handleTakePhoto}>
-            <Text style={styles.buttonText}>TAKE PHOTO</Text>
-            <Arrow width={24} height={24} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.greenButton} onPress={handleUploadImage}>
-            <Text style={styles.buttonText}>UPLOAD IMAGE</Text>
-            <Arrow width={24} height={24} />
-          </TouchableOpacity>
-
-          {selectedImage ? (
-        <TouchableOpacity
-            style={styles.orangeButton}
-            onPress={handleUploadImage}
+        <ScrollView
+          style={styles.bottomScroll}
+          contentContainerStyle={styles.bottomScrollContent}
+          showsVerticalScrollIndicator={false}
         >
-            <Text style={styles.buttonText}>CHANGE IMAGE</Text>
-            <Arrow width={24} height={24} />
-        </TouchableOpacity>
-        ) : null}
+          <View style={styles.buttonGroup}>
+            {!selectedImage ? (
+              <>
+                <TouchableOpacity style={styles.orangeButton} onPress={handleTakePhoto}>
+                  <Text style={styles.buttonText}>TAKE PHOTO</Text>
+                  <Photo width={24} height={24} />
+                </TouchableOpacity>
 
-          {selectedImage ? (
-            <TouchableOpacity style={styles.analyzeButton} onPress={handleAnalyzeTrack}>
-              <Text style={styles.buttonText}>
-                {isAnalyzing ? 'ANALYZING TRACK...' : 'ANALYZE TRACK'}
-              </Text>
-              <Arrow width={24} height={24} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+                <TouchableOpacity style={styles.greenButton} onPress={handleUploadImage}>
+                  <Text style={styles.buttonText}>UPLOAD IMAGE</Text>
+                  <ImageIcon width={24} height={24} />
+                </TouchableOpacity>
+              </>
+            ) : null}
 
-        {analysisDone ? (
-          <View
-            style={[
+            {selectedImage ? (
+              <TouchableOpacity
+                style={styles.orangeButton}
+                onPress={handleChangeImage}
+              >
+                <Text style={styles.buttonText}>CHANGE IMAGE</Text>
+                <Attach width={24} height={24} />
+              </TouchableOpacity>
+            ) : null}
+
+            {selectedImage ? (
+              <TouchableOpacity
+                style={styles.greenButton}
+                onPress={handleCancelImage}
+              >
+                <Text style={styles.buttonText}>CANCEL</Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {selectedImage && !analysisDone ? (
+              <TouchableOpacity style={styles.analyzeButton} onPress={handleAnalyzeTrack}>
+                <Text style={styles.buttonText}>
+                  {isAnalyzing ? 'ANALYZING TRACK...' : 'ANALYZE TRACK'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {analysisDone ? (
+            <View
+              style={[
                 styles.resultCard,
                 analysisResult.danger === 'HIGH' && styles.highThreatCard,
                 analysisResult.danger === 'MEDIUM' && styles.mediumThreatCard,
                 analysisResult.danger === 'LOW' && styles.lowThreatCard,
-            ]}
+              ]}
             >
-            <Text style={styles.resultTitle}>FIELD ANALYSIS RESULT</Text>
-            <Text style={styles.resultText}>
-              SPECIES: {analysisResult.species}{'\n'}
-              TRACK AGE: {analysisResult.age}{'\n'}
-              DIRECTION: {analysisResult.direction}{'\n'}
-              THREAT LEVEL: {analysisResult.danger}
-            </Text>
-          </View>
-        ) : null}
+              <Text style={styles.resultTitle}>FIELD ANALYSIS RESULT</Text>
+              <Text style={styles.resultText}>
+                SPECIES: {analysisResult.species}{'\n'}
+                TRACK AGE: {analysisResult.age}{'\n'}
+                DIRECTION: {analysisResult.direction}{'\n'}
+                THREAT LEVEL: {analysisResult.danger}
+              </Text>
+            </View>
+          ) : null}
 
-        <View style={styles.footerCard}>
-          <Text style={styles.footerText}>
-            IMPI CAN IDENTIFY:{'\n'}
-            • SPECIES{'\n'}
-            • TRACK AGE{'\n'}
-            • DIRECTION OF MOVEMENT{'\n'}
-            • POTENTIAL DANGER LEVEL
-          </Text>
-        </View>
+          {!analysisDone ? (
+            <View style={styles.footerCard}>
+              <Text style={styles.footerText}>
+                IMPI CAN IDENTIFY:{'\n'}
+                • SPECIES{'\n'}
+                • TRACK AGE{'\n'}
+                • DIRECTION OF MOVEMENT{'\n'}
+                • POTENTIAL DANGER LEVEL
+              </Text>
+            </View>
+          ) : null}
+        </ScrollView>
       </View>
     </View>
   );
@@ -330,6 +377,7 @@ const styles = StyleSheet.create({
     height: 320,
     borderRadius: 24,
     backgroundColor: '#8033077c',
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,
@@ -343,6 +391,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
 
     elevation: 6,
+  },
+
+  scanAreaWithImage: {
+    paddingHorizontal: 0,
   },
 
   scanTitle: {
@@ -373,7 +425,7 @@ const styles = StyleSheet.create({
   analyzeButton: {
     height: 58,
     borderRadius: 18,
-    backgroundColor: '#44282786',
+    backgroundColor: '#676127a3',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -433,6 +485,16 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
+  bottomScroll: {
+    width: '100%',
+    flex: 1,
+  },
+
+  bottomScrollContent: {
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
+
   buttonGroup: {
     width: '95%',
     marginBottom: 26,
@@ -441,7 +503,7 @@ const styles = StyleSheet.create({
   orangeButton: {
     height: 58,
     borderRadius: 18,
-    backgroundColor: '#93562794',
+    backgroundColor: '#191818',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -462,7 +524,7 @@ const styles = StyleSheet.create({
   greenButton: {
     height: 58,
     borderRadius: 18,
-    backgroundColor: '#676127a3',
+    backgroundColor: '#191818',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -490,7 +552,7 @@ const styles = StyleSheet.create({
   footerCard: {
     width: '95%',
     borderRadius: 18,
-    backgroundColor: '#44282786',
+    backgroundColor: '#676127a3',
     padding: 18,
     shadowColor: '#000',
     shadowOffset: {
