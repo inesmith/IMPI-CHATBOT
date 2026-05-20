@@ -274,6 +274,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     width: '95%',
     alignSelf: 'center',
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+
+    elevation: 6,
   },
 
   logo: {
@@ -307,18 +317,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 18,
     marginBottom: 14,
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+
+    elevation: 6,
   },
 
   impiBubble: {
     alignSelf: 'flex-start',
     backgroundColor: '#191818',
     borderTopLeftRadius: 4,
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+
+    elevation: 6,
   },
 
   userBubble: {
     alignSelf: 'flex-end',
     backgroundColor: '#676127a3',
     borderTopRightRadius: 4,
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+
+    elevation: 6,
   },
 
   messageLabel: {
@@ -353,6 +393,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     width: '95%',
     alignSelf: 'center',
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+
+    elevation: 6,
   },
 
   input: {
@@ -368,7 +418,7 @@ const styles = StyleSheet.create({
   attachButton: {
     paddingHorizontal: 8,
     paddingVertical: 10,
-    marginBottom: 2,
+    marginBottom: -2,
   },
 
   sendButton: {

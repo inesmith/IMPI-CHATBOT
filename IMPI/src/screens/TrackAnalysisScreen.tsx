@@ -431,6 +431,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 18,
     marginTop: 18,
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+
+    elevation: 6,
   },
 
   resultCard: {
@@ -439,6 +449,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#676127a3',
     padding: 18,
     marginBottom: 18,
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+
+    elevation: 6,
   },
 
   resultTitle: {

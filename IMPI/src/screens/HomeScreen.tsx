@@ -451,7 +451,10 @@ const handleDeleteAccount = () => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.smallCardGreen}>
+            <TouchableOpacity
+              style={styles.smallCardGreen}
+              onPress={() => setCurrentScreen('speciesFieldGuide')}
+            >
               <Arrow
                 width={18}
                 height={18}
@@ -469,7 +472,10 @@ const handleDeleteAccount = () => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.smallCardRed}>
+            <TouchableOpacity
+              style={styles.smallCardRed}
+              onPress={() => setCurrentScreen('scenarioTraining')}
+            >
               <Arrow
                 width={18}
                 height={18}
@@ -1164,6 +1170,7 @@ profileImageBox: {
 profileImage: {
   width: '100%',
   height: '100%',
+  borderRadius: 16,
 },
 
 uploadText: {
