@@ -14,6 +14,7 @@ import ImpiChatMenuScreen from './src/screens/ImpiChatMenuScreen';
 import TrackAnalysisScreen from './src/screens/TrackAnalysisScreen';
 import SpeciesFieldGuideScreen from './src/screens/SpeciesFieldGuideScreen';
 import ScenarioTrainingScreen from './src/screens/ScenarioTrainingScreen';
+import FieldMapScreen from './src/screens/FieldMapScreen';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('landing');
@@ -85,6 +86,10 @@ export default function App() {
 
   if (currentScreen === 'scenarioTraining') {
     return <ScenarioTrainingScreen setCurrentScreen={setCurrentScreen} />;
+  }
+
+  if (currentScreen === 'fieldMap') {
+    return <FieldMapScreen setCurrentScreen={setCurrentScreen} />;
   }
 
   return <LandingScreen networkStatus={networkStatus} />;

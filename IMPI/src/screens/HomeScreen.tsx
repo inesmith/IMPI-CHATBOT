@@ -24,6 +24,7 @@ import HailIcon from '../../assets/images/hail.svg';
 import NightCloudyIcon from '../../assets/images/nightCloudy.svg';
 import NightClearIcon from '../../assets/images/nightClear.svg';
 import LocationIcon from '../../assets/images/locationIcon.svg';
+import FieldMapIcon from '../../assets/images/fieldMapIcon.svg';
 
 const weatherIcons = {
   CLEAR: SunnyClearIcon,
@@ -497,22 +498,24 @@ const handleDeleteAccount = () => {
         </View>
         
 
-        <TouchableOpacity style={styles.scannerCard}>
+        <TouchableOpacity style={styles.fieldMapCard}
+          onPress={() => setCurrentScreen('fieldMap')}
+        >
 
           <Arrow
             width={30}
             height={30}
-            style={styles.scannerArrowIcon}
+            style={styles.fieldMapArrowIcon}
           />
 
-          <Text style={styles.scannerText}>
-            FIELD SCANNER
+          <Text style={styles.fieldMapText}>
+            FIELD MAP
           </Text>
 
-          <ScannerIcon
+          <FieldMapIcon
                 width={30}
                 height={30}
-                style={styles.scannerCardIcon}
+                style={styles.fieldMapIcon}
           />
 
         </TouchableOpacity>
@@ -932,7 +935,7 @@ locationIcon: {
     zIndex: 10,
   },
 
-  scannerCard: {
+  fieldMapCard: {
     width: '100%',
     height: 50,
     borderRadius: 18,
@@ -942,7 +945,7 @@ locationIcon: {
     marginBottom: 42,
   },
 
-  scannerText: {
+  fieldMapText: {
     color: '#CFC4B2',
     fontSize: 14,
     fontFamily: 'Aldrich',
@@ -950,12 +953,12 @@ locationIcon: {
     marginLeft: 35,
   },
 
-  scannerArrowIcon: {
+  fieldMapArrowIcon: {
     marginLeft: 310,
     marginTop: 0,
   },
 
-  scannerCardIcon: {
+  fieldMapIcon: {
     marginLeft: -5,
     marginTop: -24,
   },
