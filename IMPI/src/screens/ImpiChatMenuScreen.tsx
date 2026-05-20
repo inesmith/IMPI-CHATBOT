@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     width: '95%',
     alignSelf: 'center',
     borderRadius: 18,
-    backgroundColor: '#93562794',
+    backgroundColor: '#8033077c',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
