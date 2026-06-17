@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Asset } from 'expo-asset';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { auth } from './src/services/firebaseConfig';
 
@@ -38,12 +39,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setNetworkStatus('IN FIELD NETWORK…');
 
-      setTimeout(() => {
+      setTimeout(async () => {
         if (user) {
-          setCurrentScreen('home');
+          const rememberMe = await AsyncStorage.getItem('rememberMe');
+
+          if (rememberMe === 'true') {
+            setCurrentScreen('home');
+          } else {
+            await signOut(auth);
+            setCurrentScreen('welcome');
+          }
         } else {
           setCurrentScreen('welcome');
         }

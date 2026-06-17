@@ -82,13 +82,9 @@ export default function WelcomeScreen({ setCurrentScreen }: Props) {
             style={styles.loginButton}
             onPress={() => setCurrentScreen('login')}
             >
-            <BlurView
-                intensity={20}
-                tint="light"
-                style={styles.buttonBlur}
-            >
-                <Text style={styles.buttonText}>Login</Text>
-            </BlurView>
+        
+            <Text style={styles.buttonText}>Login</Text>
+        
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -235,6 +231,7 @@ const styles = StyleSheet.create({
 
     overflow: 'hidden',
     },
+    
 
   signupButton: {
     width: '48%',
@@ -247,9 +244,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 4,
-    elevation: 8,
+    shadowOpacity: 0.75,
+    shadowRadius: 16,
+
+    elevation: 18,
   },
 
   buttonText: {
