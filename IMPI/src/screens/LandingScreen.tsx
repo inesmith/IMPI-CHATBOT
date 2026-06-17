@@ -6,7 +6,6 @@ type Props = {
 };
 
 export default function LandingScreen({ networkStatus }: Props) {
-
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
@@ -17,32 +16,21 @@ export default function LandingScreen({ networkStatus }: Props) {
 
   return (
     <View style={styles.container}>
-
       <Image
-        source={require('../../assets/images/dust.png')}
-        style={styles.dust}
+        source={require('../../assets/images/fieldwallpaper1.png')}
+        style={styles.wallpaper}
         resizeMode="cover"
       />
 
       <View style={styles.content}>
-        <Image
-          source={require('../../assets/images/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
         <Text style={styles.title}>IMPI</Text>
 
         <Text style={styles.subtitle}>
-          AN EXPERIENCED RANGER MENTOR
+          Learn Conservation{'\n'}Through Conversation
         </Text>
-
-        <Text style={styles.networkText}>
-        {networkStatus}
-        </Text>
-
       </View>
 
+      <Text style={styles.networkText}>{networkStatus}</Text>
     </View>
   );
 }
@@ -55,46 +43,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  dust: {
+  wallpaper: {
     position: 'absolute',
     width: '100%',
     height: '100%',
   },
 
   content: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
+  width: '100%',
+  alignItems: 'center',
+  paddingHorizontal: 24,
+  marginTop: -290,
+},
 
-  logo: {
-    width: 350,
-    height: 350,
-    marginBottom: 10,
-    marginTop: -120,
-    marginLeft: 20,
-  },
+title: {
+  color: '#F4F1EA',
+  fontSize: 68,
+  fontFamily: 'Aldrich',
+  fontWeight: '800',
+  marginBottom: -80,
+  paddingBottom: 80,
+},
 
-  title: {
-    color: '#F4F1EA',
-    fontSize: 68,
-    fontFamily: 'Aldrich',
-    fontWeight: '800',
-  },
-
-  subtitle: {
-    color: '#F4F1EA',
-    fontSize: 15,
-    letterSpacing: 2,
-    marginTop: 2,
-  },
+subtitle: {
+  color: '#F4F1EA',
+  fontSize: 15,
+  letterSpacing: 2,
+  fontFamily: 'Aldrich',
+  textAlign: 'center',
+  lineHeight: 20,
+  marginBottom: 160,
+},
 
   networkText: {
-  position: 'absolute',
-  bottom: -200,
-  color: '#676127',
-  fontSize: 13,
-  letterSpacing: 1,
-  fontFamily: 'Aldrich',
-},
-});
+    position: 'absolute',
+    bottom: 50,
+    color: '#F5F5F5',
+    fontSize: 13,
+    letterSpacing: 1,
+    fontFamily: 'Aldrich',
+  },
+})
