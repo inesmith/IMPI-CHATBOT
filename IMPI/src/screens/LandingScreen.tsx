@@ -34,7 +34,7 @@ export default function LandingScreen({ networkStatus }: Props) {
         <Text style={styles.title}>IMPI</Text>
 
         <Text style={styles.subtitle}>
-          THE RANGER CHATBOT
+          AN EXPERIENCED RANGER MENTOR
         </Text>
 
         <Text style={styles.networkText}>
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
 
   subtitle: {
     color: '#F4F1EA',
-    fontSize: 23,
+    fontSize: 15,
     letterSpacing: 2,
     marginTop: 2,
   },

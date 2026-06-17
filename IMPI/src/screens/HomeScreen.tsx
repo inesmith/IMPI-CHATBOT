@@ -3,9 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { useFonts } from 'expo-font';
 import * as Location from 'expo-location';
-import { doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebaseConfig';
-import { signOut, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { doc, deleteDoc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { signOut, deleteUser, reauthenticateWithCredential, EmailAuthProvider, onAuthStateChanged } from 'firebase/auth';
 
 import TrackIcon from '../../assets/images/trackIcon.svg';
 import FieldGuideIcon from '../../assets/images/fieldguideIcon.svg';
@@ -183,17 +183,17 @@ export default function HomeScreen({ setCurrentScreen }: Props) {
       return;
     }
 
-    const userDoc = await getDoc(
-      doc(db, 'users', auth.currentUser.uid)
-    );
+    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
 
     if (userDoc.exists()) {
       const data = userDoc.data();
 
       setUsername(data.username || '');
-      setEmail(data.email || '');
+      setEmail(data.email || auth.currentUser.email || '');
       setPhoneNumber(data.phoneNumber || '');
       setProfileImage(data.profileImage || '');
+    } else {
+      setEmail(auth.currentUser.email || '');
     }
   }
 
@@ -308,8 +308,15 @@ const handleDeleteAccount = () => {
     phoneNumber: phoneNumber.trim(),
   });
 
-  setIsEditing(false);
-  resetCardToFront();
+  Keyboard.dismiss();
+
+  Animated.timing(flipAnim, {
+    toValue: 0,
+    duration: 450,
+    useNativeDriver: true,
+  }).start();
+
+  setCardFlipped(false);
 };
 
   if (!fontsLoaded) {
@@ -544,135 +551,131 @@ const handleDeleteAccount = () => {
         
 
       <Modal visible={menuVisible} transparent animationType="fade">
-      <Pressable
-        style={styles.modalOverlay}
-        onPress={() => setMenuVisible(false)}
-      >
-        <Image
-          source={require('../../assets/images/dust.png')}
-          style={styles.dust}
-          resizeMode="cover"
-        />
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => {
+            setMenuVisible(false);
+            resetCardToFront();
+          }}
+        >
+          <Image
+            source={require('../../assets/images/dust.png')}
+            style={styles.dust}
+            resizeMode="cover"
+          />
 
-        <Pressable onPress={(event) => event.stopPropagation()}>
-          <Animated.View
-            {...panResponder.panHandlers}
-            style={[
-              styles.rangerCard,
-              {
-                transform: [
-                  { perspective: 1000 },
-                  {
-                    rotateY: flipAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0deg', '180deg'],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            {!cardFlipped ? (
-              <View>
-                <Text style={styles.cardTitle}>WILDLIFE RANGER</Text>
+          <Pressable onPress={(event) => event.stopPropagation()}>
+            <Animated.View
+              {...panResponder.panHandlers}
+              style={[
+                styles.rangerCard,
+                {
+                  transform: [
+                    { perspective: 1000 },
+                    {
+                      rotateY: flipAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '180deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {!cardFlipped ? (
+                <View>
+                  <Text style={styles.cardTitle}>WILDLIFE RANGER</Text>
 
-                {profileImage ? (
-                  <View style={styles.profileImageBox}>
-                    <Image
-                      source={{ uri: profileImage }}
-                      style={styles.profileImage}
-                    />
+                  {profileImage ? (
+                    <View style={styles.profileImageBox}>
+                      <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={styles.profileImageBox} onPress={pickProfileImage}>
+                      <Text style={styles.uploadText}>UPLOAD IMAGE</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <View style={styles.profileRow}>
+                    <Text style={styles.profileLabel}>USERNAME</Text>
+                    <Text style={styles.profileValue}>{username || 'Not available'}</Text>
                   </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.profileImageBox}
-                    onPress={pickProfileImage}
-                  >
-                    <Text style={styles.uploadText}>UPLOAD IMAGE</Text>
+
+                  <View style={styles.profileRow}>
+                    <Text style={styles.profileLabel}>EMAIL</Text>
+                    <Text style={styles.profileValue}>{email || 'Not available'}</Text>
+                  </View>
+
+                  <View style={styles.profileRow}>
+                    <Text style={styles.profileLabel}>PHONE</Text>
+                    <Text style={styles.profileValue}>{phoneNumber || 'Not available'}</Text>
+                  </View>
+
+                  <TouchableOpacity style={styles.flipButton} onPress={flipCard}>
+                    <Text style={styles.flipButtonText}>EDIT CARD</Text>
                   </TouchableOpacity>
-                )}
-
-                <View style={styles.profileRow}>
-                  <Text style={styles.profileLabel}>USERNAME</Text>
-                  <Text style={styles.profileValue}>{username || 'Not available'}</Text>
                 </View>
+              ) : (
+                <View style={styles.cardBack}>
+                  <Text style={styles.cardTitle}>RANGER SETTINGS</Text>
 
-                <View style={styles.profileRow}>
-                  <Text style={styles.profileLabel}>EMAIL</Text>
-                  <Text style={styles.profileValue}>{email || 'Not available'}</Text>
+                  <TouchableOpacity style={styles.editImageButton} onPress={pickProfileImage}>
+                    <Text style={styles.modalButtonText}>EDIT IMAGE</Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.modalLabel}>USERNAME</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={username}
+                    onChangeText={setUsername}
+                    placeholder="USERNAME"
+                    placeholderTextColor="#CFC4B2"
+                    returnKeyType="done"
+                    onSubmitEditing={() => Keyboard.dismiss()}
+                  />
+
+                  <Text style={styles.modalLabel}>EMAIL</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="EMAIL"
+                    placeholderTextColor="#CFC4B2"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    returnKeyType="done"
+                    onSubmitEditing={() => Keyboard.dismiss()}
+                  />
+
+                  <Text style={styles.modalLabel}>PHONE</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    placeholder="PHONE"
+                    placeholderTextColor="#CFC4B2"
+                    keyboardType="phone-pad"
+                    returnKeyType="done"
+                    onSubmitEditing={() => Keyboard.dismiss()}
+                  />
+
+                  <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
+                    <Text style={styles.modalButtonText}>SAVE DETAILS</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.modalButton} onPress={handleLogout}>
+                    <Text style={styles.modalButtonText}>LOG OUT</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+                    <Text style={styles.deleteButtonText}>DELETE ACCOUNT</Text>
+                  </TouchableOpacity>
                 </View>
-
-                <View style={styles.profileRow}>
-                  <Text style={styles.profileLabel}>PHONE</Text>
-                  <Text style={styles.profileValue}>{phoneNumber || 'Not available'}</Text>
-                </View>
-
-                <TouchableOpacity style={styles.flipButton} onPress={flipCard}>
-                  <Text style={styles.flipButtonText}>EDIT CARD</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.cardBack}>
-                <Text style={styles.cardTitle}>RANGER SETTINGS</Text>
-
-                <TouchableOpacity style={styles.editImageButton} onPress={pickProfileImage}>
-                  <Text style={styles.modalButtonText}>EDIT IMAGE</Text>
-                </TouchableOpacity>
-
-                <Text style={styles.modalLabel}>USERNAME</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={username}
-                  onChangeText={setUsername}
-                  placeholder="USERNAME"
-                  placeholderTextColor="#CFC4B2"
-                  returnKeyType="done"
-                  onSubmitEditing={() => Keyboard.dismiss()}
-                />
-
-                <Text style={styles.modalLabel}>EMAIL</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="EMAIL"
-                  placeholderTextColor="#CFC4B2"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  returnKeyType="done"
-                  onSubmitEditing={() => Keyboard.dismiss()}
-                />
-
-                <Text style={styles.modalLabel}>PHONE</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  placeholder="PHONE"
-                  placeholderTextColor="#CFC4B2"
-                  keyboardType="phone-pad"
-                  returnKeyType="done"
-                  onSubmitEditing={() => Keyboard.dismiss()}
-                />
-
-                <TouchableOpacity style={styles.modalButton} onPress={handleLogout}>
-                  <Text style={styles.modalButtonText}>LOG OUT</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
-                  <Text style={styles.deleteButtonText}>DELETE ACCOUNT</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
-                  <Text style={styles.modalButtonText}>SAVE DETAILS</Text>
-                </TouchableOpacity>
-
-              </View>
-            )}
-          </Animated.View>
+              )}
+            </Animated.View>
+          </Pressable>
         </Pressable>
-      </Pressable>
-    </Modal>
+      </Modal>
     </View>
   );
 }
@@ -1257,4 +1260,5 @@ saveButton: {
 
   elevation: 6,
 },
+
 });
