@@ -23,7 +23,7 @@ export default function LoginScreen({ setCurrentScreen }: Props) {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const isLoginReady = email.trim() !== '' && password.trim() !== '';
 
   const handleLogin = async () => {
@@ -241,12 +241,19 @@ const styles = StyleSheet.create({
     width: 49,
     height: 49,
     borderRadius: 28,
+    borderColor: 'rgba(255,255,255,0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(217,217,217,0.20)',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -20,
     marginBottom: 35,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.75,
+    shadowRadius: 16,
+
+    elevation: 18,
   },
 
   backText: {

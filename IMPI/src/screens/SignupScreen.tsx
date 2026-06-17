@@ -4,6 +4,11 @@ import { useFonts } from 'expo-font';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebaseConfig';
+import { BlurView } from 'expo-blur';
+import { MaterialIcons } from '@expo/vector-icons';
+
+import GoogleIcon from '../../assets/images/Google-icon.svg';
+import AppleIcon from '../../assets/images/apple-icon.svg';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
@@ -21,6 +26,13 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const isSignupReady =
+    username.trim() !== '' &&
+    email.trim() !== '' &&
+    phoneNumber.trim() !== '' &&
+    password.trim() !== '' &&
+    confirmPassword.trim() !== '';
 
   const handleSignup = async () => {
     setMessage('');
@@ -76,7 +88,7 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
       if (error.code === 'auth/invalid-email') {
         setMessage('INVALID EMAIL ADDRESS.');
       } else if (error.code === 'auth/email-already-in-use') {
-        setMessage('RANGER PROFILE ALREADY EXISTS.');
+        setMessage('PROFILE ALREADY EXISTS.');
       } else if (error.code === 'auth/weak-password') {
         setMessage('PASSWORD MUST BE AT LEAST 6 CHARACTERS.');
       } else {
@@ -87,98 +99,134 @@ export default function SignupScreen({ setCurrentScreen }: Props) {
     }
   };
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   return (
     <View style={styles.container}>
-
       <Image
-        source={require('../../assets/images/dust.png')}
-        style={styles.dust}
+        source={require('../../assets/images/fieldwallpaper3.png')}
+        style={styles.wallpaper}
         resizeMode="cover"
       />
 
-      <View style={styles.card}>
-        <View style={styles.cardBackground} />
+      <View style={styles.content}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => setCurrentScreen('welcome')}
+        >
+          <MaterialIcons name="arrow-back" size={28} color="#F5F5F5" />
+        </TouchableOpacity>
 
-        <View style={styles.content}>
-          <Text style={styles.title}>SIGN UP WITH IMPI</Text>
+        <Text style={styles.title}>
+          Begin your{'\n'}conservation journey
+        </Text>
 
-          <Text style={styles.subtitle}>
-            PLEASE FILL IN ALL THE{'\n'}NECESSARY DETAILS.
-          </Text>
+        <Text style={styles.subtitle}>
+          Create your account to start exploring
+        </Text>
+
+        <View style={styles.switchContainer}>
+          <TouchableOpacity
+            style={styles.inactiveTab}
+            onPress={() => setCurrentScreen('login')}
+          >
+            <Text style={styles.tabText}>Login</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.activeTab}>
+            <Text style={styles.tabText}>Register</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputWrapper}>
+          <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
+            <MaterialIcons name="person-outline" size={25} color="#F5F5F5" />
+          </BlurView>
 
           <TextInput
             style={styles.input}
-            placeholder="USERNAME"
-            placeholderTextColor="#CFC4B2"
+            placeholder="Username"
+            placeholderTextColor="#F5F5F5"
             value={username}
             onChangeText={setUsername}
           />
+        </View>
+
+        <View style={styles.inputWrapper}>
+          <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
+            <MaterialIcons name="mail-outline" size={25} color="#F5F5F5" />
+          </BlurView>
 
           <TextInput
             style={styles.input}
-            placeholder="EMAIL ADDRESS"
-            placeholderTextColor="#CFC4B2"
+            placeholder="Email Address"
+            placeholderTextColor="#F5F5F5"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
           />
+        </View>
+
+        <View style={styles.inputWrapper}>
+          <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
+            <MaterialIcons name="phone" size={25} color="#F5F5F5" />
+          </BlurView>
 
           <TextInput
             style={styles.input}
-            placeholder="PHONE NUMBER"
-            placeholderTextColor="#CFC4B2"
+            placeholder="Phone Number"
+            placeholderTextColor="#F5F5F5"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
           />
+        </View>
+
+        <View style={styles.inputWrapper}>
+          <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
+            <MaterialIcons name="lock-outline" size={25} color="#F5F5F5" />
+          </BlurView>
 
           <TextInput
             style={styles.input}
-            placeholder="PASSWORD"
-            placeholderTextColor="#CFC4B2"
+            placeholder="Password"
+            placeholderTextColor="#F5F5F5"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
+        </View>
+
+        <View style={styles.inputWrapper}>
+          <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
+            <MaterialIcons name="lock-outline" size={25} color="#F5F5F5" />
+          </BlurView>
 
           <TextInput
             style={styles.input}
-            placeholder="CONFIRM PASSWORD"
-            placeholderTextColor="#CFC4B2"
+            placeholder="Confirm Password"
+            placeholderTextColor="#F5F5F5"
             secureTextEntry
             value={confirmPassword}
             onChangeText={setConfirmPassword}
           />
-
-          {message ? (
-            <Text style={styles.messageText}>{message}</Text>
-          ) : null}
-
-          <TouchableOpacity
-            style={styles.signupButton}
-            onPress={handleSignup}
-            disabled={isLoading}
-          >
-            <Text style={styles.signupButtonText}>
-              {isLoading ? 'SIGNING UP...' : 'SIGN UP'}
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={styles.loginText}>
-            ALREADY HAVE AN ACCOUNT?{'\n'}
-            <Text
-              style={styles.underline}
-              onPress={() => setCurrentScreen('login')}
-            >
-              LOG IN
-            </Text>
-          </Text>
         </View>
+
+        {message ? <Text style={styles.messageText}>{message}</Text> : null}
+
+        <TouchableOpacity
+          style={[
+            styles.signupButton,
+            !isSignupReady && styles.signupButtonInactive,
+          ]}
+          onPress={handleSignup}
+          disabled={isLoading}
+        >
+          <Text style={styles.signupButtonText}>
+            {isLoading ? 'Signing up...' : 'Register'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -188,25 +236,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#191818',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 
-  card: {
-    width: '85%',
-    height: 630,
-    borderRadius: 18,
-    overflow: 'hidden',
-    justifyContent: 'center',
-  },
-
-  cardBackground: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#676127',
-    opacity: 0.32,
-  },
-
-  dust: {
+  wallpaper: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
@@ -214,98 +246,165 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
+    paddingHorizontal: 40,
+    paddingTop: 78,
+  },
+
+  backButton: {
+    width: 49,
+    height: 49,
+    borderRadius: 28,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 40,
+    marginTop: 0,
+    marginBottom: 35,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.75,
+    shadowRadius: 16,
+
+    elevation: 18,
+  },
+
+  backText: {
+    color: '#F5F5F5',
+    fontSize: 42,
+    marginTop: -6,
   },
 
   title: {
     fontFamily: 'Aldrich',
-    color: '#CFC4B2',
-    fontSize: 22,
-    letterSpacing: 2,
-    marginTop: 2,
+    color: '#F5F5F5',
+    fontSize: 26,
+    lineHeight: 27,
   },
 
   subtitle: {
-    color: '#CFC4B2',
-    fontSize: 12,
+    color: '#F5F5F5',
+    fontSize: 14,
     fontFamily: 'Aldrich',
-    textAlign: 'center',
-    letterSpacing: 1,
-    marginTop: 22,
-    marginBottom: 36,
-    lineHeight: 18,
+    marginTop: 15,
+    marginBottom: 30,
+  },
+
+  switchContainer: {
+    height: 67,
+    borderRadius: 37,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginTop: 33,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+
+  activeTab: {
+    flex: 1,
+    height: 49,
+    borderRadius: 27,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.75,
+    shadowRadius: 16,
+    elevation: 18,
+  },
+
+  inactiveTab: {
+    flex: 1,
+    height: 54,
+    borderRadius: 27,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  tabText: {
+    color: '#F5F5F5',
+    fontFamily: 'Aldrich',
+    fontSize: 16,
+    marginTop: 5,
+  },
+
+  inputWrapper: {
+    width: '100%',
+    height: 55,
+    borderRadius: 31,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 11,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+
+  inputIconCircle: {
+    width: 37,
+    height: 37,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(217,217,217,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+    marginRight: 18,
   },
 
   input: {
-    width: '100%',
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(103, 97, 39, 0.32)',
-    color: '#CFC4B2',
+    flex: 1,
+    height: '100%',
+    color: '#F5F5F5',
     fontFamily: 'Aldrich',
-    fontSize: 12,
-    paddingHorizontal: 18,
-    marginBottom: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-
-    elevation: 6,
+    fontSize: 16,
+    paddingRight: 20,
+    marginTop: 5,
   },
 
   messageText: {
-    color: '#CFC4B2',
-    fontSize: 9,
-    fontFamily: 'Aldrich',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-
-  signupButton: {
-    width: 150,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: 'rgba(103, 97, 39, 0.32)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 25,
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.40,
-    shadowRadius: 8,
-
-    elevation: 6,
-  },
-
-  signupButtonText: {
-    color: '#CFC4B2',
-    fontSize: 12,
-    fontFamily: 'Aldrich',
-    letterSpacing: 1,
-  },
-
-  loginText: {
-    color: '#CFC4B2',
+    color: '#F5F5F5',
     fontSize: 10,
     fontFamily: 'Aldrich',
     textAlign: 'center',
-    marginTop: 40,
-    lineHeight: 16,
+    marginTop: 20,
+    marginBottom: 20,
   },
 
-  underline: {
-    textDecorationLine: 'underline',
+  signupButton: {
+    height: 68,
+    borderRadius: 38,
+    backgroundColor: 'rgba(9, 42, 255, 0.61)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.75,
+    shadowRadius: 16,
+    elevation: 18,
+    marginTop: 10,
+    marginBottom: 32,
   },
+
+  signupButtonInactive: {
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+
+  signupButtonText: {
+    color: '#F5F5F5',
+    fontSize: 22,
+    fontFamily: 'Aldrich',
+    marginTop: 5,
+  },
+  
 });

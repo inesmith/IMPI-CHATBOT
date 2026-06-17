@@ -91,7 +91,7 @@ export default function WelcomeScreen({ setCurrentScreen }: Props) {
               style={styles.signupButton}
               onPress={() => setCurrentScreen('signup')}
             >
-              <Text style={styles.buttonText}>Signup</Text>
+              <Text style={styles.buttonText}>Register</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Asset } from 'expo-asset';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,6 +21,7 @@ import FieldMapScreen from './src/screens/FieldMapScreen';
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('landing');
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const hasCheckedInitialAuth = useRef(false);
   const [networkStatus, setNetworkStatus] = useState(
     'Connecting to field network…'
   );
@@ -44,15 +45,22 @@ export default function App() {
 
       setTimeout(async () => {
         if (user) {
-          const rememberMe = await AsyncStorage.getItem('rememberMe');
+          if (!hasCheckedInitialAuth.current) {
+            hasCheckedInitialAuth.current = true;
 
-          if (rememberMe === 'true') {
-            setCurrentScreen('home');
+            const rememberMe = await AsyncStorage.getItem('rememberMe');
+
+            if (rememberMe === 'true') {
+              setCurrentScreen('home');
+            } else {
+              await signOut(auth);
+              setCurrentScreen('welcome');
+            }
           } else {
-            await signOut(auth);
-            setCurrentScreen('welcome');
+            setCurrentScreen('home');
           }
         } else {
+          hasCheckedInitialAuth.current = true;
           setCurrentScreen('welcome');
         }
       }, 2500);
