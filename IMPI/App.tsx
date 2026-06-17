@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/services/firebaseConfig';
 
 import LandingScreen from './src/screens/LandingScreen';
+import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -44,7 +45,7 @@ export default function App() {
         if (user) {
           setCurrentScreen('home');
         } else {
-          setCurrentScreen('login');
+          setCurrentScreen('welcome');
         }
       }, 2500);
     });
@@ -60,20 +61,24 @@ export default function App() {
     return <SignupScreen setCurrentScreen={setCurrentScreen} />;
   }
 
-  if (currentScreen === 'impiChatMenu') {
-    return <ImpiChatMenuScreen setCurrentScreen={setCurrentScreen} />;
+  if (currentScreen === 'welcome') {
+    return <WelcomeScreen setCurrentScreen={setCurrentScreen} />;
   }
 
-  if (currentScreen === 'talkWithImpi') {
-    return <TalkWithImpiScreen setCurrentScreen={setCurrentScreen} />;
+  if (currentScreen === 'login') {
+    return <LoginScreen setCurrentScreen={setCurrentScreen} />;
   }
 
   if (currentScreen === 'home') {
     return <HomeScreen setCurrentScreen={setCurrentScreen} />;
   }
 
-  if (currentScreen === 'login') {
-    return <LoginScreen setCurrentScreen={setCurrentScreen} />;
+  if (currentScreen === 'impiChatMenu') {
+    return <ImpiChatMenuScreen setCurrentScreen={setCurrentScreen} />;
+  }
+
+  if (currentScreen === 'talkWithImpi') {
+    return <TalkWithImpiScreen setCurrentScreen={setCurrentScreen} />;
   }
 
   if (currentScreen === 'trackAnalysis') {
