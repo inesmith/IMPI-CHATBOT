@@ -19,11 +19,13 @@ import ImpiLogo from '../../assets/images/ImpiLogo.svg';
 type Props = {
   setCurrentScreen: (screen: string) => void;
   setInitialChatMessage: (message: string) => void;
+  setSelectedChatId: (chatId: string | null) => void;
 };
 
 export default function ImpiChatMenuScreen({
   setCurrentScreen,
   setInitialChatMessage,
+  setSelectedChatId,
 }: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
@@ -34,17 +36,19 @@ export default function ImpiChatMenuScreen({
 
   const handleSendMessage = () => {
     if (message.trim()) {
-      setInitialChatMessage(message.trim());
-      setMessage('');
-      Keyboard.dismiss();
-      setCurrentScreen('talkWithImpi');
+        setSelectedChatId(null);
+        setInitialChatMessage(message.trim());
+        setMessage('');
+        Keyboard.dismiss();
+        setCurrentScreen('talkWithImpi');
     }
-  };
+    };
 
   const handleSuggestionPress = (text: string) => {
+    setSelectedChatId(null);
     setInitialChatMessage(text);
     setCurrentScreen('talkWithImpi');
-  };
+    };
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
@@ -79,11 +83,11 @@ export default function ImpiChatMenuScreen({
         />
 
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => setCurrentScreen('home')}
-        >
-          <MaterialIcons name="arrow-back" size={30} color="#F5F5F5" />
-        </TouchableOpacity>
+            style={styles.backButton}
+            onPress={() => setCurrentScreen('chatHistory')}
+            >
+            <MaterialIcons name="history" size={30} color="#F5F5F5" />
+            </TouchableOpacity>
 
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>Impi</Text>

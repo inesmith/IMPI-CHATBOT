@@ -11,12 +11,16 @@ import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ImpiChatMenuScreen from './src/screens/ImpiChatMenuScreen';
 import TalkWithImpiScreen from './src/screens/TalkWithImpiScreen';
+import ChatHistoryScreen from './src/screens/ChatHistoryScreen';
+import ConservationMythsScreen from './src/screens/ConservationMythsScreen';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('landing');
   const [assetsLoaded, setAssetsLoaded] = useState(false);
   const [initialChatMessage, setInitialChatMessage] = useState('');
   const hasCheckedInitialAuth = useRef(false);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<'general' | 'stories' | 'scenarios'>('general');
 
   const [networkStatus, setNetworkStatus] = useState(
     'Connecting to field network…'
@@ -72,11 +76,17 @@ export default function App() {
     return <LoginScreen setCurrentScreen={setCurrentScreen} />;
   }
 
+  if (currentScreen === 'conservationMyths') {
+    return <ConservationMythsScreen setCurrentScreen={setCurrentScreen} />;
+  }
+
   if (currentScreen === 'home') {
     return (
       <HomeScreen
         setCurrentScreen={setCurrentScreen}
         setInitialChatMessage={setInitialChatMessage}
+        setSelectedChatId={setSelectedChatId}
+        setChatMode={setChatMode}
       />
     );
   }
@@ -86,15 +96,30 @@ export default function App() {
       <ImpiChatMenuScreen
         setCurrentScreen={setCurrentScreen}
         setInitialChatMessage={setInitialChatMessage}
+        setSelectedChatId={setSelectedChatId}
+        setChatMode={setChatMode}
       />
     );
   }
 
   if (currentScreen === 'talkWithImpi') {
     return (
-      <TalkWithImpiScreen
+    <TalkWithImpiScreen
+      setCurrentScreen={setCurrentScreen}
+      initialChatMessage={initialChatMessage}
+      selectedChatId={selectedChatId}
+      setSelectedChatId={setSelectedChatId}
+      chatMode={chatMode}
+    />
+    );
+  }
+
+  if (currentScreen === 'chatHistory') {
+    return (
+      <ChatHistoryScreen
         setCurrentScreen={setCurrentScreen}
-        initialChatMessage={initialChatMessage}
+        setInitialChatMessage={setInitialChatMessage}
+        setSelectedChatId={setSelectedChatId}
       />
     );
   }

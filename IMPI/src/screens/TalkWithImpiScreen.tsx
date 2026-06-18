@@ -1,28 +1,37 @@
 import {
-  Animated,
-  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
-  PanResponder,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  ScrollView,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { useFonts } from 'expo-font';
+import {
+  addDoc,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+  collection,
+} from 'firebase/firestore';
+
+import { auth, db } from '../services/firebaseConfig';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
   initialChatMessage: string;
+  selectedChatId: string | null;
+  setSelectedChatId: (chatId: string | null) => void;
+  chatMode: 'general' | 'stories' | 'scenarios';
 };
 
 type ChatMessage = {
@@ -33,6 +42,9 @@ type ChatMessage = {
 export default function TalkWithImpiScreen({
   setCurrentScreen,
   initialChatMessage,
+  selectedChatId,
+  setSelectedChatId,
+  chatMode,
 }: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
@@ -41,28 +53,123 @@ export default function TalkWithImpiScreen({
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-
   const scrollRef = useRef<ScrollView>(null);
+  const hasCreatedInitialChat = useRef(false);
+
+  const headerTitle =
+  chatMode === 'stories'
+    ? 'Impi'
+    : chatMode === 'scenarios'
+      ? 'Impi'
+      : 'Impi';
+
+    const headerSubtitle =
+    chatMode === 'stories'
+        ? 'Ranger Stories'
+        : chatMode === 'scenarios'
+        ? 'Decision Scenarios'
+        : 'Conservation Mentor';
+
+        const impiIntro =
+        chatMode === 'stories'
+            ? 'Ask me for a ranger story and I’ll explain what it teaches about conservation.'
+            : chatMode === 'scenarios'
+            ? 'I’ll give you a conservation scenario. Choose what you would do, then I’ll explain if your answer is correct or incorrect.'
+            : 'Tell me a conservation question and I’ll help you learn like a ranger.';
+
+  const generateChatTitle = (text: string) => {
+    const cleanText = text.trim();
+
+    if (cleanText.length <= 32) return cleanText;
+
+    return `${cleanText.slice(0, 32)}...`;
+  };
+
+  const saveNewChat = async (chatMessages: ChatMessage[]) => {
+    try {
+      if (!auth.currentUser) {
+        console.log('NO CURRENT USER');
+        return;
+      }
+
+      const firstUserMessage =
+        chatMessages.find((item) => item.role === 'user')?.content ||
+        'New IMPI Chat';
+
+      const lastMessage =
+        chatMessages[chatMessages.length - 1]?.content || firstUserMessage;
+
+      const chatDoc = await addDoc(collection(db, 'chatHistory'), {
+        userId: auth.currentUser.uid,
+        title: generateChatTitle(firstUserMessage),
+        lastMessage,
+        messages: chatMessages,
+        chatMode,
+        pinned: false,
+        archived: false,
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      });
+
+      console.log('CHAT SAVED:', chatDoc.id);
+      setSelectedChatId(chatDoc.id);
+    } catch (error) {
+      console.log('SAVE CHAT ERROR:', error);
+    }
+  };
+
+  const updateExistingChat = async (chatMessages: ChatMessage[]) => {
+    if (!auth.currentUser || !selectedChatId) return;
+
+    const firstUserMessage =
+      chatMessages.find((item) => item.role === 'user')?.content || 'IMPI Chat';
+
+    const lastMessage =
+      chatMessages[chatMessages.length - 1]?.content || firstUserMessage;
+
+    await updateDoc(doc(db, 'chatHistory', selectedChatId), {
+      title: generateChatTitle(firstUserMessage),
+      lastMessage,
+      messages: chatMessages,
+      chatMode,
+      updatedAt: serverTimestamp(),
+    });
+  };
 
   useEffect(() => {
-    if (initialChatMessage) {
-      setMessages([
-        { role: 'user', content: initialChatMessage },
-        {
-          role: 'impi',
-          content: 'Tell me a conservation question and I’ll help you learn like a ranger.',
-        },
-      ]);
-    } else {
-      setMessages([
-        {
-          role: 'impi',
-          content: 'Tell me a conservation question and I’ll help you learn like a ranger.',
-        },
-      ]);
-    }
-  }, [initialChatMessage]);
+    hasCreatedInitialChat.current = false;
 
+    async function loadChat() {
+      if (selectedChatId) {
+        const chatDoc = await getDoc(doc(db, 'chatHistory', selectedChatId));
+
+        if (chatDoc.exists()) {
+          const data = chatDoc.data();
+          setMessages(data.messages || []);
+        }
+
+        return;
+      }
+
+      if (initialChatMessage) {
+        const newMessages: ChatMessage[] = [
+          { role: 'user', content: initialChatMessage },
+          { role: 'impi', content: impiIntro },
+        ];
+
+        setMessages(newMessages);
+
+        if (!hasCreatedInitialChat.current) {
+          hasCreatedInitialChat.current = true;
+          await saveNewChat(newMessages);
+        }
+      } else {
+        setMessages([{ role: 'impi', content: impiIntro }]);
+      }
+    }
+
+    loadChat();
+  }, [initialChatMessage, selectedChatId, chatMode]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -70,29 +177,36 @@ export default function TalkWithImpiScreen({
     }, 100);
   }, [messages, isTyping]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!message.trim()) return;
 
     const userMessage = message.trim();
+    const impiResponse =
+      'IMPI will answer this properly once OpenAI is connected.';
 
-    setMessages((prevMessages) => [
-      ...prevMessages,
+    const userUpdatedMessages: ChatMessage[] = [
+      ...messages,
       { role: 'user', content: userMessage },
-    ]);
+    ];
 
+    setMessages(userUpdatedMessages);
     setMessage('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          role: 'impi',
-          content: 'IMPI will answer this properly once OpenAI is connected.',
-        },
-      ]);
+    setTimeout(async () => {
+      const finalMessages: ChatMessage[] = [
+        ...userUpdatedMessages,
+        { role: 'impi', content: impiResponse },
+      ];
 
+      setMessages(finalMessages);
       setIsTyping(false);
+
+      if (selectedChatId) {
+        await updateExistingChat(finalMessages);
+      } else {
+        await saveNewChat(finalMessages);
+      }
     }, 900);
   };
 
@@ -120,8 +234,8 @@ export default function TalkWithImpiScreen({
           </TouchableOpacity>
 
           <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>Impi</Text>
-            <Text style={styles.headerSubtitle}>Conservation Mentor</Text>
+            <Text style={styles.headerTitle}>{headerTitle}</Text>
+            <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
           </View>
 
           <TouchableOpacity
@@ -171,15 +285,7 @@ export default function TalkWithImpiScreen({
                 textAlignVertical="center"
               />
 
-              <TouchableOpacity
-                onPress={() => {
-                    if (message.trim()) {
-                    handleSendMessage();
-                    } else {
-                    setCurrentScreen('voiceInput');
-                    }
-                }}
-                >
+              <TouchableOpacity onPress={handleSendMessage}>
                 <BlurView intensity={25} tint="light" style={styles.micCircle}>
                   <MaterialIcons name="arrow-upward" size={25} color="#F5F5F5" />
                 </BlurView>
@@ -334,17 +440,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(217,217,217,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  voiceButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 39,
-    backgroundColor: 'rgba(217,217,217,0.20)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },

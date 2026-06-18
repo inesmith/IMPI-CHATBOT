@@ -34,9 +34,16 @@ import BookIcon from '../../assets/images/import_contacts.svg';
 type Props = {
   setCurrentScreen: (screen: string) => void;
   setInitialChatMessage: (message: string) => void;
+  setSelectedChatId: (chatId: string | null) => void;
+  setChatMode: (mode: 'general' | 'stories' | 'scenarios') => void;
 };
 
-export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: Props) {
+export default function HomeScreen({
+  setCurrentScreen,
+  setInitialChatMessage,
+  setSelectedChatId,
+  setChatMode,
+}: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
@@ -231,7 +238,17 @@ export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: 
                 </BlurView>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.homeCard}>
+              <TouchableOpacity
+                style={styles.homeCard}
+                onPress={() => {
+                  setSelectedChatId(null);
+                  setChatMode('stories');
+                  setInitialChatMessage(
+                    'Tell me a ranger story and explain what it teaches about conservation.'
+                  );
+                  setCurrentScreen('talkWithImpi');
+                }}
+              >
                 <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
                   <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
                     <BookIcon width={20} height={20} />
@@ -244,7 +261,14 @@ export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: 
 
               <TouchableOpacity
                 style={styles.homeCard}
-                onPress={() => setCurrentScreen('scenarioTraining')}
+                onPress={() => {
+                  setSelectedChatId(null);
+                  setChatMode('scenarios');
+                  setInitialChatMessage(
+                    'Give me a conservation scenario. Let me choose an answer, then tell me if I was correct or incorrect and explain why.'
+                  );
+                  setCurrentScreen('talkWithImpi');
+                }}
               >
                 <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
                   <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
@@ -256,7 +280,9 @@ export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: 
                 </BlurView>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.homeCard}>
+              <TouchableOpacity style={styles.homeCard}
+                onPress={() => setCurrentScreen('conservationMyths')}
+              >
                 <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
                   <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
                     <MythIcon width={20} height={20} />
@@ -272,8 +298,10 @@ export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: 
               style={styles.askBar}
               activeOpacity={0.85}
               onPress={() => {
+                setSelectedChatId(null);
+                setChatMode('general');
                 setInitialChatMessage('');
-                setCurrentScreen('talkWithImpi');
+                setCurrentScreen('impiChatMenu');
               }}
             >
               <Text style={styles.askPlaceholder}>Ask me anything...</Text>
