@@ -249,9 +249,9 @@ const styles = StyleSheet.create({
     marginTop: -20,
     marginBottom: 35,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.75,
-    shadowRadius: 16,
+    shadowRadius: 10,
 
     elevation: 18,
   },
@@ -301,10 +301,10 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 10,
     },
    shadowOpacity: 0.75,
-   shadowRadius: 16,
+   shadowRadius: 10,
 
    elevation: 18,
   },
@@ -399,9 +399,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.75,
-    shadowRadius: 16,
+    shadowRadius: 10,
 
     elevation: 18,
     marginBottom: 42,
@@ -458,9 +458,9 @@ const styles = StyleSheet.create({
     gap: 8,                 
 
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.75,
-    shadowRadius: 16,
+    shadowRadius: 10,
 
     elevation: 18,
   },

@@ -1,429 +1,225 @@
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, ScrollView, PanResponder, Keyboard, Alert } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
-import { useState } from 'react';
-import * as ImagePicker from 'expo-image-picker';
-
-import AttachIcon from '../../assets/images/attachIcon.svg';
-import SendIcon from '../../assets/images/sendIcon.svg';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
+  initialChatMessage: string;
 };
 
-export default function TalkWithImpiScreen({ setCurrentScreen }: Props) {
+
+export default function TalkWithImpiScreen({ setCurrentScreen, initialChatMessage }: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
 
-  const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      return gestureState.dx > 20;
-    },
-
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dx > 100) {
-        setCurrentScreen('impiChatMenu');
-      }
-    },
-  });
-
-  const [message, setMessage] = useState('');
-
-  const [messages, setMessages] = useState([
-    {
-      sender: 'impi',
-      text: 'Ranger, I am online. What do you need help with in the field?',
-      image: null,
-    },
-  ]);
-
-  const sendMessage = () => {
-    if (!message.trim()) return;
-
-    setMessages([
-      ...messages,
-      {
-        sender: 'user',
-        text: message,
-        image: null,
-      },
-    ]);
-
-    setMessage('');
-  };
-
-  const uploadImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setMessages([
-        ...messages,
-        {
-          sender: 'user',
-          text: '',
-          image: result.assets[0].uri,
-        },
-      ]);
-    }
-  };
-
-  const takePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-
-    if (!permission.granted) return;
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setMessages([
-        ...messages,
-        {
-          sender: 'user',
-          text: '',
-          image: result.assets[0].uri,
-        },
-      ]);
-    }
-  };
-
-  const chooseImageOption = () => {
-    Alert.alert('Attach image', 'Choose an option', [
-      {
-        text: 'Upload Image',
-        onPress: uploadImage,
-      },
-      {
-        text: 'Take Photo',
-        onPress: takePhoto,
-      },
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-    ]);
-  };
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={10}
-      {...panResponder.panHandlers}
-    >
+    <View style={styles.container}>
       <Image
-        source={require('../../assets/images/dust.png')}
-        style={styles.dust}
+        source={require('../../assets/images/wallpaper.png')}
+        style={styles.wallpaper}
         resizeMode="cover"
       />
 
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => setCurrentScreen('impiChatMenu')}
-        >
-          <Text style={styles.backArrow}>‹</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => setCurrentScreen('impiChatMenu')}
+      >
+        <MaterialIcons name="arrow-back" size={30} color="#F5F5F5" />
+      </TouchableOpacity>
 
-        <Text style={styles.title}>TALK WITH IMPI</Text>
+      <View style={styles.headerText}>
+        <Text style={styles.headerTitle}>Impi</Text>
+        <Text style={styles.headerSubtitle}>Conservation Mentor</Text>
       </View>
 
-      <View style={styles.rangerCard}>
-        <Image
-          source={require('../../assets/images/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
-        <Text style={styles.rangerText}>
-          IMPI ONLINE{'\n'}
-          FIELD COMMS ACTIVE
-        </Text>
-      </View>
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => setCurrentScreen('home')}
+      >
+        <MaterialIcons name="close" size={30} color="#F5F5F5" />
+      </TouchableOpacity>
 
       <View style={styles.chatArea}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.chatContent}
-        >
-          {messages.map((item, index) => (
-            <View
-              key={index}
-              style={[
-                styles.messageBubble,
-                item.sender === 'impi' ? styles.impiBubble : styles.userBubble,
-              ]}
-            >
-              {item.sender === 'impi' && (
-                <Text style={styles.messageLabel}>IMPI</Text>
-              )}
-
-              {item.image && (
-                <Image
-                  source={{ uri: item.image }}
-                  style={styles.chatImage}
-                  resizeMode="cover"
-                />
-              )}
-
-              {item.text ? (
-                <Text style={styles.messageText}>{item.text}</Text>
-              ) : null}
+        {initialChatMessage ? (
+            <View style={styles.userBubble}>
+            <Text style={styles.bubbleText}>{initialChatMessage}</Text>
             </View>
-          ))}
-        </ScrollView>
-      </View>
-
-      <View style={styles.inputBar}>
-        <TextInput
-          style={[
-            styles.input,
-            { height: Math.min(120, Math.max(40, message.split('\n').length * 22)) },
-          ]}
-          placeholder="ASK IMPI..."
-          placeholderTextColor="#CFC4B2"
-          multiline
-          blurOnSubmit={false}
-          returnKeyType="default"
-          value={message}
-          onChangeText={setMessage}
-          contextMenuHidden={false}
-          selectTextOnFocus
-        />
-
-        <TouchableOpacity style={styles.attachButton} onPress={chooseImageOption}>
-          <AttachIcon width={24} height={24} />
-        </TouchableOpacity>
-
-        {message.trim() ? (
-          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-            <SendIcon width={24} height={24} />
-          </TouchableOpacity>
         ) : null}
+
+        <View style={styles.impiBubble}>
+            <Text style={styles.bubbleText}>
+            Tell me a conservation question and I’ll help you learn like a ranger.
+            </Text>
+        </View>
+        </View>
+
+      <View style={styles.bottomRow}>
+        <View style={styles.askBar}>
+          <TextInput
+            style={styles.askInput}
+            placeholder="Ask me anything..."
+            placeholderTextColor="#F5F5F5"
+          />
+
+          <BlurView intensity={25} tint="light" style={styles.micCircle}>
+            <MaterialIcons name="mic" size={28} color="#F5F5F5" />
+          </BlurView>
+        </View>
+
+        <TouchableOpacity style={styles.voiceButton}>
+          <MaterialIcons name="graphic-eq" size={34} color="#F5F5F5" />
+        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#191818',
-    paddingHorizontal: 20,
-    paddingTop: 70,
-  },
+  container: { flex: 1, backgroundColor: '#191818' },
 
-  dust: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: undefined,
-    height: undefined,
-  },
-
-  header: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 24,
-    position: 'relative',
+  wallpaper: {
+    ...StyleSheet.absoluteFillObject,
+    width: '110%',
+    height: '110%',
+    top: -10,
+    left: -10,
   },
 
   backButton: {
     position: 'absolute',
-    left: 0,
-    top: -15,
-    width: 42,
-    height: 42,
+    top: 90,
+    left: 34,
+    width: 49,
+    height: 49,
+    borderRadius: 28,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  backArrow: {
-    color: '#CFC4B2',
-    fontSize: 34,
-    fontFamily: 'Aldrich',
-  },
-
-  title: {
-    color: '#CFC4B2',
-    fontSize: 18,
-    fontFamily: 'Aldrich',
-    letterSpacing: 2,
-  },
-
-  rangerCard: {
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: '#67612737',
-    flexDirection: 'row',
+  closeButton: {
+    position: 'absolute',
+    top: 90,
+    right: 34,
+    width: 49,
+    height: 49,
+    borderRadius: 28,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    marginBottom: 24,
-    width: '95%',
-    alignSelf: 'center',
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-
-    elevation: 6,
   },
 
-  logo: {
-    width: 50,
-    height: 50,
-    marginRight: 16,
+  headerText: {
+    alignItems: 'center',
+    marginTop: 100,
   },
 
-  rangerText: {
-    color: '#CFC4B2',
-    fontSize: 10,
+  headerTitle: {
+    color: '#F5F5F5',
+    fontSize: 26,
     fontFamily: 'Aldrich',
-    lineHeight: 15,
+  },
+
+  headerSubtitle: {
+    color: '#F5F5F5',
+    fontSize: 15,
+    fontFamily: 'Aldrich',
+    marginTop: 4,
   },
 
   chatArea: {
     flex: 1,
-    borderRadius: 22,
-    width: '95%',
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-
-  chatContent: {
-    paddingBottom: 20,
-  },
-
-  messageBubble: {
-    maxWidth: '78%',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 18,
-    marginBottom: 14,
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-
-    elevation: 6,
-  },
-
-  impiBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#191818',
-    borderTopLeftRadius: 4,
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-
-    elevation: 6,
+    paddingHorizontal: 34,
+    marginTop: 50,
   },
 
   userBubble: {
     alignSelf: 'flex-end',
-    backgroundColor: '#676127a3',
-    borderTopRightRadius: 4,
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-
-    elevation: 6,
+    maxWidth: '78%',
+    borderRadius: 25,
+    borderBottomRightRadius: 0,
+    backgroundColor: 'rgba(158,154,81,0.75)',
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    marginBottom: 28,
   },
 
-  messageLabel: {
-    color: '#CFC4B2',
-    fontSize: 11,
+  impiBubble: {
+    alignSelf: 'flex-start',
+    maxWidth: '78%',
+    borderRadius: 25,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+    borderBottomLeftRadius: 0,
+  },
+
+  bubbleText: {
+    color: '#F5F5F5',
+    fontSize: 12,
     fontFamily: 'Aldrich',
-    marginBottom: 8,
+    lineHeight: 16,
   },
 
-  messageText: {
-    color: '#CFC4B2',
-    fontSize: 15,
-    fontFamily: 'Aldrich',
-    lineHeight: 24,
-  },
-
-  chatImage: {
-    width: 190,
-    height: 150,
-    borderRadius: 14,
-  },
-
-  inputBar: {
-    minHeight: 58,
-    borderRadius: 18,
-    backgroundColor: '#676127a3',
+  bottomRow: {
+    position: 'absolute',
+    left: 34,
+    right: 34,
+    bottom: 48,
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginTop: 5,
-    marginBottom: 40,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    width: '95%',
-    alignSelf: 'center',
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-
-    elevation: 6,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 
-  input: {
+  askBar: {
+    width: '78%',
+    height: 72,
+    borderRadius: 39,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    paddingLeft: 32,
+    paddingRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  askInput: {
     flex: 1,
-    color: '#CFC4B2',
+    color: '#F5F5F5',
+    fontSize: 16,
     fontFamily: 'Aldrich',
-    fontSize: 15,
-    maxHeight: 110,
-    paddingTop: 13,
-    paddingBottom: 8,
+    marginTop: 5,
   },
 
-  attachButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    marginBottom: -2,
+  micCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(217,217,217,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  sendButton: {
-    paddingLeft: 8,
-    paddingVertical: 10,
-    marginBottom: 2,
+  voiceButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 39,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

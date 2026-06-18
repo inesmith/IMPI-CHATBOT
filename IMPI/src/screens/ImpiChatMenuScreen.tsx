@@ -1,217 +1,329 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, PanResponder, } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { useFonts } from 'expo-font';
 
-import Arrow from '../../assets/images/arrow.svg';
+import ImpiLogo from '../../assets/images/ImpiLogo.svg';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
+  setInitialChatMessage: (message: string) => void;
 };
 
-export default function ImpiChatMenuScreen({ setCurrentScreen }: Props) {
+export default function ImpiChatMenuScreen({ setCurrentScreen, setInitialChatMessage, }: Props) {
   const [fontsLoaded] = useFonts({
-        Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
-    });
-
-    const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-        return gestureState.dx > 20;
-    },
-
-    onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx > 100) {
-        setCurrentScreen('home');
-        }
-    },
+    Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  const [message, setMessage] = useState('');
+
+  const handleSendMessage = () => {
+    if (message.trim()) {
+        setInitialChatMessage(message.trim());
+        setMessage('');
+        setCurrentScreen('talkWithImpi');
+    }
+    };
+
+  const handleSuggestionPress = (text: string) => {
+    setInitialChatMessage(text);
+    setCurrentScreen('talkWithImpi');
+    };
+
+  if (!fontsLoaded) return null;
 
   return (
-    <View style={styles.outerContainer}>
-        <Image
-            source={require('../../assets/images/dust.png')}
-            style={styles.dust}
-            resizeMode="cover"
-        />
-
-        <View
-            style={styles.container}
-            {...panResponder.panHandlers}
-        >
+    <View style={styles.container}>
+      <Image
+        source={require('../../assets/images/wallpaper.png')}
+        style={styles.wallpaper}
+        resizeMode="cover"
+      />
 
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => setCurrentScreen('home')}
       >
-        <Text style={styles.backArrow}>‹</Text>
+        <MaterialIcons name="arrow-back" size={30} color="#F5F5F5" />
       </TouchableOpacity>
 
-      <Text style={styles.topPillText}>IMPI</Text>
-
-      <Image
-        source={require('../../assets/images/logo.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-
-      <Text style={styles.title}>
-        HOW MAY I GUIDE{'\n'}YOU TODAY?
-      </Text>
-
-      <View style={styles.buttonGroup}>
-        <TouchableOpacity
-          style={styles.orangeButton}
-          onPress={() => setCurrentScreen('talkWithImpi')}
-        >
-          <Text style={styles.buttonText}>ARMED & UNARMED LAW ENFORCEMENT</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.orangeButton}
-          onPress={() => setCurrentScreen('talkWithImpi')}
-        >
-          <Text style={styles.buttonText}>ANTI-POACHING OPERATIONS</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.orangeButton}
-          onPress={() => setCurrentScreen('talkWithImpi')}
-        >
-          <Text style={styles.buttonText}>CONSERVATION </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.greenButton}
-          onPress={() => setCurrentScreen('talkWithImpi')}
-        >
-          <Text style={styles.buttonText}>START MY OWN CHAT</Text>
-          <Arrow width={24} height={24} />
-        </TouchableOpacity>
+      <View style={styles.headerText}>
+        <Text style={styles.headerTitle}>Impi</Text>
+        <Text style={styles.headerSubtitle}>Conservation Mentor</Text>
       </View>
-    </View>
+
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => setCurrentScreen('home')}
+      >
+        <MaterialIcons name="close" size={30} color="#F5F5F5" />
+      </TouchableOpacity>
+
+      <View style={styles.centerContent}>
+        <ImpiLogo width={145} height={145} />
+
+        <Text style={styles.title}>Learn with IMPI</Text>
+
+        <Text style={styles.subtitle}>
+          Ask questions, explore stories, and learn how{'\n'}
+          rangers protect ecosystems.
+        </Text>
+
+        <View style={styles.suggestionGrid}>
+          <TouchableOpacity
+            style={styles.suggestionButton}
+            onPress={() => handleSuggestionPress('What happens during a patrol?')}
+            >
+            <Text style={styles.suggestionText}>What happens during a patrol?</Text>
+            </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.suggestionButton}
+            onPress={() => handleSuggestionPress('Test me with a scenario')}
+          >
+            <Text style={styles.suggestionText}>Test me with a scenario</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.suggestionButton}
+            onPress={() => handleSuggestionPress('Tell me a ranger story')}
+          >
+            <Text style={styles.suggestionText}>Tell me a ranger story</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.suggestionButton}
+            onPress={() => handleSuggestionPress('What does a ranger actually do?')}
+          >
+            <Text style={styles.suggestionText}>What does a ranger actually do?</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.bottomRow}>
+        <View style={styles.askBar}>
+            <TextInput
+            style={styles.askInput}
+            placeholder="Ask me anything..."
+            placeholderTextColor="#F5F5F5"
+            value={message}
+            onChangeText={setMessage}
+            />
+
+            <TouchableOpacity onPress={handleSendMessage}>
+            <BlurView intensity={24} tint="light" style={styles.micCircle}>
+                <MaterialIcons
+                name={message.trim() ? 'arrow-upward' : 'mic'}
+                size={28}
+                color="#F5F5F5"
+                />
+            </BlurView>
+            </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+            style={styles.voiceButton}
+            onPress={() => setCurrentScreen('talkWithImpi')}
+        >
+            <MaterialIcons name="graphic-eq" size={34} color="#F5F5F5" />
+        </TouchableOpacity>
+        </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
+  container: {
     flex: 1,
     backgroundColor: '#191818',
   },
 
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 75,
-  },
-
-  dust: {
+  wallpaper: {
     ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
+    width: '110%',
+    height: '110%',
+    left: -10,
+    top: -10,
   },
 
   backButton: {
     position: 'absolute',
-    top: 70,
-    left: 22,
-    width: 42,
-    height: 42,
+    top: 90,
+    left: 34,
+    width: 49,
+    height: 49,
+    borderRadius: 28,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.75,
+    shadowRadius: 10,
+    elevation: 18,
   },
 
-  backArrow: {
-    color: '#CFC4B2',
-    fontSize: 34,
+  closeButton: {
+    position: 'absolute',
+    top: 90,
+    right: 34,
+    width: 49,
+    height: 49,
+    borderRadius: 28,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.75,
+    shadowRadius: 10,
+    elevation: 18,
+  },
+
+  headerText: {
+    alignItems: 'center',
+    marginTop: 100,
+  },
+
+  headerTitle: {
+    color: '#F5F5F5',
+    fontSize: 26,
     fontFamily: 'Aldrich',
-    marginTop: -13,
-    marginLeft: -2,
   },
 
-  topPillText: {
-    color: '#CFC4B2',
-    fontSize: 20,
+  headerSubtitle: {
+    color: '#F5F5F5',
+    fontSize: 15,
     fontFamily: 'Aldrich',
-    letterSpacing: 2,
-    marginTop: 2,
+    marginTop: 4,
   },
 
-  logo: {
-    width: 350,
-    height: 350,
-    marginBottom: 20,
-    marginLeft: 20,
+  centerContent: {
+    alignItems: 'center',
+    marginTop: 115,
   },
 
   title: {
-    color: '#CFC4B2',
-    fontSize: 23,
+    color: '#F5F5F5',
+    fontSize: 32,
+    fontFamily: 'Aldrich',
+    marginTop: 19,
+  },
+
+  subtitle: {
+    color: '#F5F5F5',
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: 'Aldrich',
     textAlign: 'center',
-    lineHeight: 31,
-    letterSpacing: 2,
-    marginBottom: 52,
+    marginTop: 8,
+    marginBottom: 22,
   },
 
-  buttonGroup: {
-    width: '100%',
-  },
-
-  orangeButton: {
-    height: 58,
-    width: '95%',
-    alignSelf: 'center',
-    borderRadius: 18,
-    backgroundColor: '#8033077c',
+  suggestionGrid: {
+    width: '90%',
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    marginBottom: 24,
-
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 7,
+    top: -10,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-
-    elevation: 6,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.75,
+    shadowRadius: 10,
+    elevation: 18,
   },
 
-  greenButton: {
-    height: 58,
-    width: '95%',
-    alignSelf: 'center',
-    borderRadius: 18,
-    backgroundColor: '#676127a3',
-    flexDirection: 'row',
+  suggestionButton: {
+    height: 40,
+    borderRadius: 24,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    marginTop: 16,
-
+    paddingHorizontal: 22,
+    marginBottom: 0,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-
-    elevation: 6,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 10,
   },
 
-  buttonText: {
-    color: '#CFC4B2',
-    fontSize: 12,
+  suggestionText: {
+    color: '#F5F5F5',
+    fontSize: 10,
     fontFamily: 'Aldrich',
-    letterSpacing: 1,
+    textAlign: 'center',
+  },
+
+  bottomRow: {
+    position: 'absolute',
+    left: 34,
+    right: 34,
+    bottom: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  askBar: {
+    width: '78%',
+    height: 72,
+    bottom: -12,
+    borderRadius: 39,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    paddingLeft: 32,
+    paddingRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  askInput: {
+    flex: 1,
+    color: '#F5F5F5',
+    fontSize: 16,
+    fontFamily: 'Aldrich',
+    marginTop: 5,
+    },
+
+  askText: {
+    color: '#F5F5F5',
+    fontSize: 16,
+    fontFamily: 'Aldrich',
+    marginTop: 5,
+  },
+
+  micCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(217,217,217,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  voiceButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 39,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    bottom: -12,
   },
 });

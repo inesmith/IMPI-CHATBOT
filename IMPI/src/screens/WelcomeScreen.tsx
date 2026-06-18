@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(244, 241, 234, 0.35)',
     shadowColor: '#FFFFFF',
     shadowOpacity: 0.28,
-    shadowRadius: 18,
+    shadowRadius: 10,
     shadowOffset: { width: -6, height: -6 },
   },
 
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000000',
     shadowOffset: {
         width: 0,
-        height: 4,
+        height: 10,
     },
     shadowOpacity: 0.45,
     shadowRadius: 4,
@@ -243,9 +243,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.75,
-    shadowRadius: 16,
+    shadowRadius: 10,
 
     elevation: 18,
   },
