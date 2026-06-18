@@ -1,4 +1,20 @@
-import { Animated, Alert, Image, Keyboard, Modal, PanResponder, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  Alert,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+  ScrollView,
+} from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { useFonts } from 'expo-font';
@@ -28,6 +44,7 @@ export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: 
   const [menuVisible, setMenuVisible] = useState(false);
   const [accountMode, setAccountMode] = useState<'view' | 'edit'>('view');
   const [message, setMessage] = useState('');
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -57,6 +74,21 @@ export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: 
 
     loadUserData();
   }, [menuVisible]);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardOpen(true);
+    });
+
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardOpen(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const pickProfileImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -145,6 +177,7 @@ export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: 
     if (message.trim()) {
       setInitialChatMessage(message.trim());
       setMessage('');
+      Keyboard.dismiss();
       setCurrentScreen('talkWithImpi');
     }
   };
@@ -152,256 +185,255 @@ export default function HomeScreen({ setCurrentScreen, setInitialChatMessage }: 
   if (!fontsLoaded) return null;
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require('../../assets/images/wallpaper.png')}
-        style={styles.wallpaper}
-        resizeMode="cover"
-      />
-
-      <View style={styles.homeContent}>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => setMenuVisible(true)}
-        >
-          <Text style={styles.menuText}>☰</Text>
-        </TouchableOpacity>
-
-        <BlurView intensity={30} tint="light" style={styles.logoGlass}>
-          <ImpiLogo width={58} height={58} />
-        </BlurView>
-
-        <Text style={styles.homeTitle}>Hello!</Text>
-
-        <Text style={styles.homeSubtitle}>
-          What would you like to discover{'\n'}today?
-        </Text>
-
-        <View style={styles.cardGrid}>
-          <TouchableOpacity
-            style={styles.homeCard}
-            onPress={() => setCurrentScreen('impiChatMenu')}
-          >
-            <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
-              <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
-                <TalkIcon width={20} height={20} />
-              </BlurView>
-              <Text style={styles.homeCardTitle}>Talk{'\n'}With Impi</Text>
-              <Text style={styles.homeCardText}>Conversations about conservation.</Text>
-              <Text style={styles.homeCardArrow}>↗</Text>
-            </BlurView>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.homeCard}>
-            <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
-              <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
-                <BookIcon width={20} height={20} />
-              </BlurView>
-              <Text style={styles.homeCardTitle}>Ranger{'\n'}Stories</Text>
-              <Text style={styles.homeCardText}>Hear experiences from the field.</Text>
-              <Text style={styles.homeCardArrow}>↗</Text>
-            </BlurView>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.homeCard}
-            onPress={() => setCurrentScreen('scenarioTraining')}
-          >
-            <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
-              <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
-                <LeafIcon width={20} height={20} />
-              </BlurView>
-              <Text style={styles.homeCardTitle}>Conservation{'\n'}Scenarios</Text>
-              <Text style={styles.homeCardText}>Make difficult conser-vation decisions.</Text>
-              <Text style={styles.homeCardArrow}>↗</Text>
-            </BlurView>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.homeCard}>
-            <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
-              <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
-                <MythIcon width={20} height={20} />
-              </BlurView>
-              <Text style={styles.homeCardTitle}>Conservation{'\n'}Myths</Text>
-              <Text style={styles.homeCardText}>Challenge common misconceptions.</Text>
-              <Text style={styles.homeCardArrow}>↗</Text>
-            </BlurView>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.askBar}>
-          <TextInput
-            style={styles.askInput}
-            placeholder="Ask me anything..."
-            placeholderTextColor="#F5F5F5"
-            value={message}
-            onChangeText={setMessage}
-          />
-
-          <TouchableOpacity onPress={handleSendMessage}>
-            <BlurView intensity={25} tint="light" style={styles.askIconCircle}>
-              <MaterialIcons
-                name={message.trim() ? 'arrow-upward' : 'chat-bubble-outline'}
-                size={26}
-                color="#F5F5F5"
-              />
-            </BlurView>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <Modal visible={menuVisible} animationType="fade">
-        <View style={styles.accountScreen}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.container}>
           <Image
-            source={require('../../assets/images/fieldwallpaper3.png')}
+            source={require('../../assets/images/wallpaper.png')}
             style={styles.wallpaper}
             resizeMode="cover"
           />
 
-          <TouchableOpacity
-            style={styles.accountBackButton}
-            onPress={() => setMenuVisible(false)}
-          >
-            <MaterialIcons name="arrow-back" size={28} color="#F5F5F5" />
-          </TouchableOpacity>
+          <View style={styles.homeContent}>
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => setMenuVisible(true)}
+            >
+              <Text style={styles.menuText}>☰</Text>
+            </TouchableOpacity>
 
-          <View style={styles.accountContent}>
-            <Text style={styles.accountTitle}>Account Settings</Text>
-            <Text style={styles.accountSubtitle}>View or edit your account settings here</Text>
+            <BlurView intensity={30} tint="light" style={styles.logoGlass}>
+              <ImpiLogo width={58} height={58} />
+            </BlurView>
 
-            <View style={styles.accountSwitch}>
+            <Text style={styles.homeTitle}>Hello!</Text>
+
+            <Text style={styles.homeSubtitle}>
+              What would you like to discover{'\n'}today?
+            </Text>
+
+            <View style={styles.cardGrid}>
               <TouchableOpacity
-                style={[
-                  styles.accountInactiveTab,
-                  accountMode === 'view' && styles.accountActiveTab,
-                ]}
-                onPress={() => setAccountMode('view')}
+                style={styles.homeCard}
+                onPress={() => setCurrentScreen('impiChatMenu')}
               >
-                <Text style={styles.accountTabText}>View</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.accountInactiveTab,
-                  accountMode === 'edit' && styles.accountActiveTab,
-                ]}
-                onPress={() => setAccountMode('edit')}
-              >
-                <Text style={styles.accountTabText}>Edit</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.accountInput}>
-              <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
-                <MaterialIcons name="person-outline" size={25} color="#F5F5F5" />
-              </BlurView>
-
-              {accountMode === 'edit' ? (
-                <TextInput
-                  style={styles.accountTextInput}
-                  value={username}
-                  onChangeText={setUsername}
-                  placeholder="Username"
-                  placeholderTextColor="#F5F5F5"
-                />
-              ) : (
-                <Text style={styles.accountInputText}>{username || 'Not available'}</Text>
-              )}
-            </View>
-
-            <View style={styles.accountInput}>
-              <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
-                  <MaterialIcons
-                    name="mail-outline"
-                    size={25}
-                    color="#F5F5F5"
-                  />
+                <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
+                  <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
+                    <TalkIcon width={20} height={20} />
+                  </BlurView>
+                  <Text style={styles.homeCardTitle}>Talk{'\n'}With Impi</Text>
+                  <Text style={styles.homeCardText}>Conversations about conservation.</Text>
+                  <Text style={styles.homeCardArrow}>↗</Text>
                 </BlurView>
+              </TouchableOpacity>
 
-              {accountMode === 'edit' ? (
-                <TextInput
-                  style={styles.accountTextInput}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email"
-                  placeholderTextColor="#F5F5F5"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-              ) : (
-                <Text style={styles.accountInputText}>{email || 'Not available'}</Text>
-              )}
+              <TouchableOpacity style={styles.homeCard}>
+                <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
+                  <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
+                    <BookIcon width={20} height={20} />
+                  </BlurView>
+                  <Text style={styles.homeCardTitle}>Ranger{'\n'}Stories</Text>
+                  <Text style={styles.homeCardText}>Hear experiences from the field.</Text>
+                  <Text style={styles.homeCardArrow}>↗</Text>
+                </BlurView>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.homeCard}
+                onPress={() => setCurrentScreen('scenarioTraining')}
+              >
+                <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
+                  <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
+                    <LeafIcon width={20} height={20} />
+                  </BlurView>
+                  <Text style={styles.homeCardTitle}>Conservation{'\n'}Scenarios</Text>
+                  <Text style={styles.homeCardText}>Make difficult conser-vation decisions.</Text>
+                  <Text style={styles.homeCardArrow}>↗</Text>
+                </BlurView>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.homeCard}>
+                <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
+                  <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>
+                    <MythIcon width={20} height={20} />
+                  </BlurView>
+                  <Text style={styles.homeCardTitle}>Conservation{'\n'}Myths</Text>
+                  <Text style={styles.homeCardText}>Challenge common misconceptions.</Text>
+                  <Text style={styles.homeCardArrow}>↗</Text>
+                </BlurView>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.accountInput}>
-              <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
-                <MaterialIcons name="phone" size={25} color="#F5F5F5" />
+            <TouchableOpacity
+              style={styles.askBar}
+              activeOpacity={0.85}
+              onPress={() => {
+                setInitialChatMessage('');
+                setCurrentScreen('talkWithImpi');
+              }}
+            >
+              <Text style={styles.askPlaceholder}>Ask me anything...</Text>
+
+              <BlurView intensity={25} tint="light" style={styles.askIconCircle}>
+                <MaterialIcons name="arrow-upward" size={25} color="#F5F5F5" />
               </BlurView>
-
-              {accountMode === 'edit' ? (
-                <TextInput
-                  style={styles.accountTextInput}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  placeholder="Phone"
-                  placeholderTextColor="#F5F5F5"
-                  keyboardType="phone-pad"
-                />
-              ) : (
-                <Text style={styles.accountInputText}>{phoneNumber || 'Not available'}</Text>
-              )}
-            </View>
-
-            {profileMessage ? (
-              <Text style={styles.profileMessage}>{profileMessage}</Text>
-            ) : null}
-
-            {accountMode === 'edit' ? (
-              <>
-                <TouchableOpacity style={styles.saveButtonAccount} onPress={handleSaveProfile}>
-                  <Text style={styles.saveButtonAccountText}>Save</Text>
-                </TouchableOpacity>
-
-                <View style={styles.dividerRow}>
-                  <View style={styles.line} />
-                  <Text style={styles.orText}>Password</Text>
-                  <View style={styles.line} />
-                </View>
-
-                <TouchableOpacity style={styles.resetPasswordButton}>
-                  <Text style={styles.accountButtonText}>Reset Password</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <View style={styles.dividerRow}>
-                  <View style={styles.line} />
-                  <Text style={styles.orText}>Account</Text>
-                  <View style={styles.line} />
-                </View>
-
-                <View style={styles.accountRow}>
-                  <TouchableOpacity style={styles.accountButton} onPress={handleLogout}>
-                    <Text style={styles.accountButtonText}>Log Out</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.accountButton} onPress={handleDeleteAccount}>
-                    <Text style={styles.accountButtonText}>Delete Account</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
+            </TouchableOpacity>
           </View>
+
+          <Modal visible={menuVisible} animationType="fade">
+            <View style={styles.accountScreen}>
+              <Image
+                source={require('../../assets/images/fieldwallpaper3.png')}
+                style={styles.wallpaper}
+                resizeMode="cover"
+              />
+
+              <TouchableOpacity
+                style={styles.accountBackButton}
+                onPress={() => setMenuVisible(false)}
+              >
+                <MaterialIcons name="arrow-back" size={28} color="#F5F5F5" />
+              </TouchableOpacity>
+
+              <View style={styles.accountContent}>
+                <Text style={styles.accountTitle}>Account Settings</Text>
+                <Text style={styles.accountSubtitle}>View or edit your account settings here</Text>
+
+                <View style={styles.accountSwitch}>
+                  <TouchableOpacity
+                    style={[
+                      styles.accountInactiveTab,
+                      accountMode === 'view' && styles.accountActiveTab,
+                    ]}
+                    onPress={() => setAccountMode('view')}
+                  >
+                    <Text style={styles.accountTabText}>View</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.accountInactiveTab,
+                      accountMode === 'edit' && styles.accountActiveTab,
+                    ]}
+                    onPress={() => setAccountMode('edit')}
+                  >
+                    <Text style={styles.accountTabText}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.accountInput}>
+                  <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
+                    <MaterialIcons name="person-outline" size={25} color="#F5F5F5" />
+                  </BlurView>
+
+                  {accountMode === 'edit' ? (
+                    <TextInput
+                      style={styles.accountTextInput}
+                      value={username}
+                      onChangeText={setUsername}
+                      placeholder="Username"
+                      placeholderTextColor="#F5F5F5"
+                    />
+                  ) : (
+                    <Text style={styles.accountInputText}>{username || 'Not available'}</Text>
+                  )}
+                </View>
+
+                <View style={styles.accountInput}>
+                  <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
+                    <MaterialIcons name="mail-outline" size={25} color="#F5F5F5" />
+                  </BlurView>
+
+                  {accountMode === 'edit' ? (
+                    <TextInput
+                      style={styles.accountTextInput}
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Email"
+                      placeholderTextColor="#F5F5F5"
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  ) : (
+                    <Text style={styles.accountInputText}>{email || 'Not available'}</Text>
+                  )}
+                </View>
+
+                <View style={styles.accountInput}>
+                  <BlurView intensity={24} tint="light" style={styles.inputIconCircle}>
+                    <MaterialIcons name="phone" size={25} color="#F5F5F5" />
+                  </BlurView>
+
+                  {accountMode === 'edit' ? (
+                    <TextInput
+                      style={styles.accountTextInput}
+                      value={phoneNumber}
+                      onChangeText={setPhoneNumber}
+                      placeholder="Phone"
+                      placeholderTextColor="#F5F5F5"
+                      keyboardType="phone-pad"
+                    />
+                  ) : (
+                    <Text style={styles.accountInputText}>{phoneNumber || 'Not available'}</Text>
+                  )}
+                </View>
+
+                {profileMessage ? (
+                  <Text style={styles.profileMessage}>{profileMessage}</Text>
+                ) : null}
+
+                {accountMode === 'edit' ? (
+                  <>
+                    <TouchableOpacity style={styles.saveButtonAccount} onPress={handleSaveProfile}>
+                      <Text style={styles.saveButtonAccountText}>Save</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.dividerRow}>
+                      <View style={styles.line} />
+                      <Text style={styles.orText}>Password</Text>
+                      <View style={styles.line} />
+                    </View>
+
+                    <TouchableOpacity style={styles.resetPasswordButton}>
+                      <Text style={styles.accountButtonText}>Reset Password</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.dividerRow}>
+                      <View style={styles.line} />
+                      <Text style={styles.orText}>Account</Text>
+                      <View style={styles.line} />
+                    </View>
+
+                    <View style={styles.accountRow}>
+                      <TouchableOpacity style={styles.accountButton} onPress={handleLogout}>
+                        <Text style={styles.accountButtonText}>Log Out</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity style={styles.accountButton} onPress={handleDeleteAccount}>
+                        <Text style={styles.accountButtonText}>Delete Account</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+          </Modal>
         </View>
-      </Modal>
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#191818',
+    backgroundColor: '#605737',
   },
 
   wallpaper: {
@@ -479,10 +511,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.45,
     shadowRadius: 10,
     elevation: 18,
@@ -550,13 +579,16 @@ const styles = StyleSheet.create({
   },
 
   askBar: {
-    height: 72,
+    minHeight: 72,
+    maxHeight: 120,
     borderRadius: 39,
     backgroundColor: 'rgba(217,217,217,0.20)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
     marginTop: 50,
-    paddingHorizontal: 32,
+    paddingLeft: 32,
+    paddingRight: 8,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -567,10 +599,16 @@ const styles = StyleSheet.create({
     elevation: 18,
   },
 
+  askBarKeyboardOpen: {
+    marginTop: -280,
+    backgroundColor: '#605737e1',
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+
   askIconCircle: {
     width: 50,
     height: 50,
-    right: -20,
+    right: 5,
     borderRadius: 28,
     overflow: 'hidden',
     backgroundColor: 'rgba(217,217,217,0.05)',
@@ -582,10 +620,20 @@ const styles = StyleSheet.create({
 
   askInput: {
     flex: 1,
+    maxHeight: 90,
     color: '#F5F5F5',
     fontSize: 16,
     fontFamily: 'Aldrich',
-    marginTop: 5,
+    paddingRight: 14,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+
+  askPlaceholder: {
+    flex: 1,
+    color: '#F5F5F5',
+    fontSize: 16,
+    fontFamily: 'Aldrich',
     paddingRight: 14,
   },
 

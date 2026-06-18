@@ -4,7 +4,6 @@
     "slug": "IMPI",
     "version": "1.0.0",
     "orientation": "portrait",
-    
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -12,14 +11,23 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow IMPI to use speech recognition.",
+        "NSMicrophoneUsageDescription": "Allow IMPI to use the microphone."
+      },
+      "bundleIdentifier": "com.anonymous.IMPI"
     },
     "android": {
-      "adaptiveIcon": { 
+      "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.IMPI"
     },
     "web": {
       "favicon": "./assets/favicon.png"

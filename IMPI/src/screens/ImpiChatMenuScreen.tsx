@@ -1,7 +1,17 @@
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Image,
+  Keyboard,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 
 import ImpiLogo from '../../assets/images/ImpiLogo.svg';
@@ -11,132 +21,152 @@ type Props = {
   setInitialChatMessage: (message: string) => void;
 };
 
-export default function ImpiChatMenuScreen({ setCurrentScreen, setInitialChatMessage, }: Props) {
+export default function ImpiChatMenuScreen({
+  setCurrentScreen,
+  setInitialChatMessage,
+}: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
 
   const [message, setMessage] = useState('');
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const handleSendMessage = () => {
     if (message.trim()) {
-        setInitialChatMessage(message.trim());
-        setMessage('');
-        setCurrentScreen('talkWithImpi');
+      setInitialChatMessage(message.trim());
+      setMessage('');
+      Keyboard.dismiss();
+      setCurrentScreen('talkWithImpi');
     }
-    };
+  };
 
   const handleSuggestionPress = (text: string) => {
     setInitialChatMessage(text);
     setCurrentScreen('talkWithImpi');
+  };
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setKeyboardOpen(true);
+      }
+    );
+
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardOpen(false);
+      }
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
     };
+  }, []);
 
   if (!fontsLoaded) return null;
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require('../../assets/images/wallpaper.png')}
-        style={styles.wallpaper}
-        resizeMode="cover"
-      />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.container}>
+        <Image
+          source={require('../../assets/images/wallpaper.png')}
+          style={styles.wallpaper}
+          resizeMode="cover"
+        />
 
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => setCurrentScreen('home')}
-      >
-        <MaterialIcons name="arrow-back" size={30} color="#F5F5F5" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <MaterialIcons name="arrow-back" size={30} color="#F5F5F5" />
+        </TouchableOpacity>
 
-      <View style={styles.headerText}>
-        <Text style={styles.headerTitle}>Impi</Text>
-        <Text style={styles.headerSubtitle}>Conservation Mentor</Text>
-      </View>
-
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={() => setCurrentScreen('home')}
-      >
-        <MaterialIcons name="close" size={30} color="#F5F5F5" />
-      </TouchableOpacity>
-
-      <View style={styles.centerContent}>
-        <ImpiLogo width={145} height={145} />
-
-        <Text style={styles.title}>Learn with IMPI</Text>
-
-        <Text style={styles.subtitle}>
-          Ask questions, explore stories, and learn how{'\n'}
-          rangers protect ecosystems.
-        </Text>
-
-        <View style={styles.suggestionGrid}>
-          <TouchableOpacity
-            style={styles.suggestionButton}
-            onPress={() => handleSuggestionPress('What happens during a patrol?')}
-            >
-            <Text style={styles.suggestionText}>What happens during a patrol?</Text>
-            </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.suggestionButton}
-            onPress={() => handleSuggestionPress('Test me with a scenario')}
-          >
-            <Text style={styles.suggestionText}>Test me with a scenario</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.suggestionButton}
-            onPress={() => handleSuggestionPress('Tell me a ranger story')}
-          >
-            <Text style={styles.suggestionText}>Tell me a ranger story</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.suggestionButton}
-            onPress={() => handleSuggestionPress('What does a ranger actually do?')}
-          >
-            <Text style={styles.suggestionText}>What does a ranger actually do?</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.bottomRow}>
-        <View style={styles.askBar}>
-            <TextInput
-            style={styles.askInput}
-            placeholder="Ask me anything..."
-            placeholderTextColor="#F5F5F5"
-            value={message}
-            onChangeText={setMessage}
-            />
-
-            <TouchableOpacity onPress={handleSendMessage}>
-            <BlurView intensity={24} tint="light" style={styles.micCircle}>
-                <MaterialIcons
-                name={message.trim() ? 'arrow-upward' : 'mic'}
-                size={28}
-                color="#F5F5F5"
-                />
-            </BlurView>
-            </TouchableOpacity>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>Impi</Text>
+          <Text style={styles.headerSubtitle}>Conservation Mentor</Text>
         </View>
 
         <TouchableOpacity
-            style={styles.voiceButton}
-            onPress={() => setCurrentScreen('talkWithImpi')}
+          style={styles.closeButton}
+          onPress={() => setCurrentScreen('home')}
         >
-            <MaterialIcons name="graphic-eq" size={34} color="#F5F5F5" />
+          <MaterialIcons name="close" size={30} color="#F5F5F5" />
         </TouchableOpacity>
+
+        <View style={styles.centerContent}>
+          <ImpiLogo width={145} height={145} />
+
+          <Text style={styles.title}>Learn with IMPI</Text>
+
+          <Text style={styles.subtitle}>
+            Ask questions, explore stories, and learn how{'\n'}
+            rangers protect ecosystems.
+          </Text>
+
+          <View style={styles.suggestionGrid}>
+            <TouchableOpacity
+              style={styles.suggestionButton}
+              onPress={() => handleSuggestionPress('What happens during a patrol?')}
+            >
+              <Text style={styles.suggestionText}>What happens during a patrol?</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.suggestionButton}
+              onPress={() => handleSuggestionPress('Test me with a scenario')}
+            >
+              <Text style={styles.suggestionText}>Test me with a scenario</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.suggestionButton}
+              onPress={() => handleSuggestionPress('Tell me a ranger story')}
+            >
+              <Text style={styles.suggestionText}>Tell me a ranger story</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.suggestionButton}
+              onPress={() => handleSuggestionPress('What does a ranger actually do?')}
+            >
+              <Text style={styles.suggestionText}>What does a ranger actually do?</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-    </View>
+
+        <View style={[styles.bottomRow, keyboardOpen && styles.bottomRowKeyboardOpen]}>
+          <View style={styles.askBar}>
+            <TextInput
+              style={styles.askInput}
+              placeholder="Ask me anything..."
+              placeholderTextColor="#F5F5F5"
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              returnKeyType="default"
+              textAlignVertical="center"
+            />
+
+            <TouchableOpacity onPress={handleSendMessage}>
+              <BlurView intensity={24} tint="light" style={styles.micCircle}>
+                <MaterialIcons name="arrow-upward" size={25} color="#F5F5F5" />
+              </BlurView>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#191818',
+    backgroundColor: '#605737',
   },
 
   wallpaper: {
@@ -268,21 +298,26 @@ const styles = StyleSheet.create({
     left: 34,
     right: 34,
     bottom: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  },
+
+  bottomRowKeyboardOpen: {
+    bottom: 360,
+    backgroundColor: '#605737f0',
+    borderColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 39,
   },
 
   askBar: {
-    width: '78%',
-    height: 72,
-    bottom: -12,
+    width: '100%',
+    minHeight: 72,
+    maxHeight: 120,
     borderRadius: 39,
     backgroundColor: 'rgba(217,217,217,0.20)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
     paddingLeft: 32,
     paddingRight: 8,
+    paddingVertical: 8,                                   
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -290,17 +325,13 @@ const styles = StyleSheet.create({
 
   askInput: {
     flex: 1,
+    maxHeight: 90,
     color: '#F5F5F5',
     fontSize: 16,
     fontFamily: 'Aldrich',
-    marginTop: 5,
-    },
-
-  askText: {
-    color: '#F5F5F5',
-    fontSize: 16,
-    fontFamily: 'Aldrich',
-    marginTop: 5,
+    paddingRight: 14,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
 
   micCircle: {
@@ -313,17 +344,5 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  voiceButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 39,
-    backgroundColor: 'rgba(217,217,217,0.20)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    bottom: -12,
   },
 });

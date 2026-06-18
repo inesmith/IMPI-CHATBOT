@@ -1,6 +1,23 @@
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  Alert,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+  ScrollView,
+} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useEffect, useRef, useState } from 'react';
 import { useFonts } from 'expo-font';
 
 type Props = {
@@ -8,78 +25,179 @@ type Props = {
   initialChatMessage: string;
 };
 
+type ChatMessage = {
+  role: 'user' | 'impi';
+  content: string;
+};
 
-export default function TalkWithImpiScreen({ setCurrentScreen, initialChatMessage }: Props) {
+export default function TalkWithImpiScreen({
+  setCurrentScreen,
+  initialChatMessage,
+}: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
 
+  const [message, setMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (initialChatMessage) {
+      setMessages([
+        { role: 'user', content: initialChatMessage },
+        {
+          role: 'impi',
+          content: 'Tell me a conservation question and I’ll help you learn like a ranger.',
+        },
+      ]);
+    } else {
+      setMessages([
+        {
+          role: 'impi',
+          content: 'Tell me a conservation question and I’ll help you learn like a ranger.',
+        },
+      ]);
+    }
+  }, [initialChatMessage]);
+
+
+  useEffect(() => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [messages, isTyping]);
+
+  const handleSendMessage = () => {
+    if (!message.trim()) return;
+
+    const userMessage = message.trim();
+
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { role: 'user', content: userMessage },
+    ]);
+
+    setMessage('');
+    setIsTyping(true);
+
+    setTimeout(() => {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          role: 'impi',
+          content: 'IMPI will answer this properly once OpenAI is connected.',
+        },
+      ]);
+
+      setIsTyping(false);
+    }, 900);
+  };
+
   if (!fontsLoaded) return null;
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require('../../assets/images/wallpaper.png')}
-        style={styles.wallpaper}
-        resizeMode="cover"
-      />
-
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => setCurrentScreen('impiChatMenu')}
-      >
-        <MaterialIcons name="arrow-back" size={30} color="#F5F5F5" />
-      </TouchableOpacity>
-
-      <View style={styles.headerText}>
-        <Text style={styles.headerTitle}>Impi</Text>
-        <Text style={styles.headerSubtitle}>Conservation Mentor</Text>
-      </View>
-
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={() => setCurrentScreen('home')}
-      >
-        <MaterialIcons name="close" size={30} color="#F5F5F5" />
-      </TouchableOpacity>
-
-      <View style={styles.chatArea}>
-        {initialChatMessage ? (
-            <View style={styles.userBubble}>
-            <Text style={styles.bubbleText}>{initialChatMessage}</Text>
-            </View>
-        ) : null}
-
-        <View style={styles.impiBubble}>
-            <Text style={styles.bubbleText}>
-            Tell me a conservation question and I’ll help you learn like a ranger.
-            </Text>
-        </View>
-        </View>
-
-      <View style={styles.bottomRow}>
-        <View style={styles.askBar}>
-          <TextInput
-            style={styles.askInput}
-            placeholder="Ask me anything..."
-            placeholderTextColor="#F5F5F5"
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={-28}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.screenContent}>
+          <Image
+            source={require('../../assets/images/wallpaper.png')}
+            style={styles.wallpaper}
+            resizeMode="cover"
           />
 
-          <BlurView intensity={25} tint="light" style={styles.micCircle}>
-            <MaterialIcons name="mic" size={28} color="#F5F5F5" />
-          </BlurView>
-        </View>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setCurrentScreen('impiChatMenu')}
+          >
+            <MaterialIcons name="arrow-back" size={30} color="#F5F5F5" />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.voiceButton}>
-          <MaterialIcons name="graphic-eq" size={34} color="#F5F5F5" />
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={styles.headerText}>
+            <Text style={styles.headerTitle}>Impi</Text>
+            <Text style={styles.headerSubtitle}>Conservation Mentor</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setCurrentScreen('home')}
+          >
+            <MaterialIcons name="close" size={30} color="#F5F5F5" />
+          </TouchableOpacity>
+
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            ref={scrollRef}
+            style={styles.chatArea}
+            contentContainerStyle={styles.chatContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {messages.map((chatMessage, index) => (
+              <View
+                key={index}
+                style={
+                  chatMessage.role === 'user'
+                    ? styles.userBubble
+                    : styles.impiBubble
+                }
+              >
+                <Text style={styles.bubbleText}>{chatMessage.content}</Text>
+              </View>
+            ))}
+
+            {isTyping ? (
+              <View style={styles.impiBubble}>
+                <Text style={styles.bubbleText}>IMPI is thinking...</Text>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          <View style={styles.bottomRow}>
+            <View style={styles.askBar}>
+              <TextInput
+                style={styles.askInput}
+                placeholder="Ask me anything..."
+                placeholderTextColor="#F5F5F5"
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                returnKeyType="default"
+                textAlignVertical="center"
+              />
+
+              <TouchableOpacity
+                onPress={() => {
+                    if (message.trim()) {
+                    handleSendMessage();
+                    } else {
+                    setCurrentScreen('voiceInput');
+                    }
+                }}
+                >
+                <BlurView intensity={25} tint="light" style={styles.micCircle}>
+                  <MaterialIcons name="arrow-upward" size={25} color="#F5F5F5" />
+                </BlurView>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#191818' },
+  container: { flex: 1, backgroundColor: '#605737' },
+
+  screenContent: {
+    flex: 1,
+  },
 
   wallpaper: {
     ...StyleSheet.absoluteFillObject,
@@ -141,6 +259,10 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
 
+  chatContent: {
+    paddingBottom: 20,
+  },
+
   userBubble: {
     alignSelf: 'flex-end',
     maxWidth: '78%',
@@ -160,6 +282,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 18,
     borderBottomLeftRadius: 0,
+    marginBottom: 28,
   },
 
   bubbleText: {
@@ -170,34 +293,37 @@ const styles = StyleSheet.create({
   },
 
   bottomRow: {
-    position: 'absolute',
-    left: 34,
-    right: 34,
-    bottom: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 34,
+    paddingBottom: 48,
   },
 
   askBar: {
-    width: '78%',
-    height: 72,
+    width: '100%',
+    minHeight: 72,
+    maxHeight: 120,
     borderRadius: 39,
     backgroundColor: 'rgba(217,217,217,0.20)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
     paddingLeft: 32,
     paddingRight: 8,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
 
   askInput: {
     flex: 1,
+    maxHeight: 90,
     color: '#F5F5F5',
     fontSize: 16,
     fontFamily: 'Aldrich',
-    marginTop: 5,
+    paddingRight: 14,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
 
   micCircle: {

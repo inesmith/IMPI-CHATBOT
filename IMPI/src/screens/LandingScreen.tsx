@@ -38,7 +38,7 @@ export default function LandingScreen({ networkStatus }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#191818',
+    backgroundColor: '#605737',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -101,7 +101,7 @@ export default function WelcomeScreen({ setCurrentScreen }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#191818' },
+  container: { flex: 1, backgroundColor: '#605737' },
 
   wallpaper: {
     position: 'absolute',
