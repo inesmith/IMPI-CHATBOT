@@ -12,7 +12,8 @@ import {
   Modal,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { PanResponder } from 'react-native';
 import { useFonts } from 'expo-font';
 import {
   collection,
@@ -209,6 +210,18 @@ export default function ChatHistoryScreen({
     loadHistory();
   };
 
+  const swipeBackResponder = useRef(
+    PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) =>
+        gesture.dx > 25 && Math.abs(gesture.dy) < 20,
+        onPanResponderRelease: (_, gesture) => {
+        if (gesture.dx > 90) {
+            setCurrentScreen('impiChatMenu');
+        }
+        },
+    })
+    ).current;
+
   const renderChatCard = (chat: ChatHistoryItem) => {
     const isSelected = menuVisible && selectedChat?.id === chat.id;
 
@@ -224,7 +237,7 @@ export default function ChatHistoryScreen({
           onPress={() => handleOpenChat(chat)}
           onLongPress={() => openChatMenu(chat)}
         >
-          <View style={styles.cardHeader}>
+          <View style={styles.cardHeader}{...swipeBackResponder.panHandlers}>
             <Text style={styles.historyTitle}>{chat.title}</Text>
 
             <View style={styles.rightHeader}>

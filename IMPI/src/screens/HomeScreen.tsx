@@ -240,14 +240,7 @@ export default function HomeScreen({
 
               <TouchableOpacity
                 style={styles.homeCard}
-                onPress={() => {
-                  setSelectedChatId(null);
-                  setChatMode('stories');
-                  setInitialChatMessage(
-                    'Tell me a ranger story and explain what it teaches about conservation.'
-                  );
-                  setCurrentScreen('talkWithImpi');
-                }}
+                onPress={() => setCurrentScreen('rangerStories')}
               >
                 <BlurView intensity={25} tint="light" style={styles.homeCardGlass}>
                   <BlurView intensity={25} tint="light" style={styles.cardIconCircle}>

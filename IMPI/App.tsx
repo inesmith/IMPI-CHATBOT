@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Asset } from 'expo-asset';
 
 import { auth } from './src/services/firebaseConfig';
 
@@ -13,6 +14,8 @@ import ImpiChatMenuScreen from './src/screens/ImpiChatMenuScreen';
 import TalkWithImpiScreen from './src/screens/TalkWithImpiScreen';
 import ChatHistoryScreen from './src/screens/ChatHistoryScreen';
 import ConservationMythsScreen from './src/screens/ConservationMythsScreen';
+import RangerStoriesScreen from './src/screens/RangerStoriesScreen';
+import RangerStoryReaderScreen from './src/screens/RangerStoryReaderScreen';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('landing');
@@ -20,6 +23,7 @@ export default function App() {
   const [initialChatMessage, setInitialChatMessage] = useState('');
   const hasCheckedInitialAuth = useRef(false);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedStoryId, setSelectedStoryId] = useState('night-patrol');
   const [chatMode, setChatMode] = useState<'general' | 'stories' | 'scenarios'>('general');
 
   const [networkStatus, setNetworkStatus] = useState(
@@ -27,7 +31,20 @@ export default function App() {
   );
 
   useEffect(() => {
-    setAssetsLoaded(true);
+    async function loadAssets() {
+      try {
+        await Asset.loadAsync([
+          require('./assets/images/wallpaper.png'),
+          require('./assets/images/fieldwallpaper3.png'),
+        ]);
+      } catch (error) {
+        console.log('ASSET LOAD ERROR:', error);
+      } finally {
+        setAssetsLoaded(true);
+      }
+    }
+
+    loadAssets();
   }, []);
 
   useEffect(() => {
@@ -61,7 +78,7 @@ export default function App() {
   }, []);
 
   if (!assetsLoaded) {
-    return null;
+    return <LandingScreen networkStatus="Loading field assets…" />;
   }
 
   if (currentScreen === 'signup') {
@@ -78,6 +95,24 @@ export default function App() {
 
   if (currentScreen === 'conservationMyths') {
     return <ConservationMythsScreen setCurrentScreen={setCurrentScreen} />;
+  }
+
+  if (currentScreen === 'rangerStories') {
+    return (
+      <RangerStoriesScreen
+        setCurrentScreen={setCurrentScreen}
+        setSelectedStoryId={setSelectedStoryId}
+      />
+    );
+  }
+
+  if (currentScreen === 'rangerStoryReader') {
+    return (
+      <RangerStoryReaderScreen
+        setCurrentScreen={setCurrentScreen}
+        selectedStoryId={selectedStoryId}
+      />
+    );
   }
 
   if (currentScreen === 'home') {

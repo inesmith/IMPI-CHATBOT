@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { PanResponder } from 'react-native';
 import { useFonts } from 'expo-font';
 
 import ImpiLogo from '../../assets/images/ImpiLogo.svg';
@@ -20,12 +21,14 @@ type Props = {
   setCurrentScreen: (screen: string) => void;
   setInitialChatMessage: (message: string) => void;
   setSelectedChatId: (chatId: string | null) => void;
+  setChatMode: (mode: 'general' | 'stories' | 'scenarios') => void;
 };
 
 export default function ImpiChatMenuScreen({
   setCurrentScreen,
   setInitialChatMessage,
   setSelectedChatId,
+  setChatMode,
 }: Props) {
   const [fontsLoaded] = useFonts({
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
@@ -34,9 +37,10 @@ export default function ImpiChatMenuScreen({
   const [message, setMessage] = useState('');
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
-  const handleSendMessage = () => {
+    const handleSendMessage = () => {
     if (message.trim()) {
         setSelectedChatId(null);
+        setChatMode('general');
         setInitialChatMessage(message.trim());
         setMessage('');
         Keyboard.dismiss();
@@ -44,11 +48,24 @@ export default function ImpiChatMenuScreen({
     }
     };
 
-  const handleSuggestionPress = (text: string) => {
+    const handleSuggestionPress = (text: string) => {
     setSelectedChatId(null);
+    setChatMode('general');
     setInitialChatMessage(text);
     setCurrentScreen('talkWithImpi');
     };
+
+    const swipeBackResponder = useRef(
+    PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) =>
+        gesture.dx > 25 && Math.abs(gesture.dy) < 20,
+        onPanResponderRelease: (_, gesture) => {
+        if (gesture.dx > 90) {
+            setCurrentScreen('home');
+        }
+        },
+    })
+    ).current;
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
@@ -75,7 +92,7 @@ export default function ImpiChatMenuScreen({
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View style={styles.container}>
+      <View style={styles.container}{...swipeBackResponder.panHandlers}>
         <Image
           source={require('../../assets/images/wallpaper.png')}
           style={styles.wallpaper}
