@@ -48,46 +48,21 @@ type Scenario = {
 type ScenarioAttempt = {
   scenario: Scenario;
   selectedIndex: number;
+  afterMessageCount: number;
 };
 
-const scenarios: Scenario[] = [
-  {
-    question:
-      'You are on patrol and discover a damaged fence near a rhino breeding area. Fresh footprints are visible nearby. What should you do?',
-    options: [
-      'Follow the footprints alone immediately.',
-      'Record the location, report the damage and request backup.',
-      'Ignore it because animals often damage fences.',
-    ],
-    correctIndex: 1,
-    explanation:
-      'The safest decision is B. A ranger should record the location, report the fence damage and request backup before moving into a possible risk area.',
-  },
-  {
-    question:
-      'You notice a group of tourists getting too close to elephants near a waterhole. What should you do?',
-    options: [
-      'Warn them calmly and guide them to a safer distance.',
-      'Shout loudly to scare the elephants away.',
-      'Ignore it because tourists are responsible for themselves.',
-    ],
-    correctIndex: 0,
-    explanation:
-      'The best answer is A. Rangers help protect both people and wildlife by reducing stress and keeping a safe distance.',
-  },
-  {
-    question:
-      'You find an injured animal during patrol. What is the best first action?',
-    options: [
-      'Try to treat the animal yourself immediately.',
-      'Record the location and report it to the correct wildlife team.',
-      'Move the animal to a different area.',
-    ],
-    correctIndex: 1,
-    explanation:
-      'The correct answer is B. Rangers should report the location and situation so trained wildlife specialists can respond safely.',
-  },
-];
+const fallbackScenario: Scenario = {
+  question:
+    'A ranger spends hours recording animal tracks and signs, even when nothing dramatic happens. What does this teach us about conservation work?',
+  options: [
+    'Most conservation work is about careful observation and information gathering.',
+    'Rangers only record tracks when they are bored.',
+    'A patrol only matters if something dangerous happens.',
+  ],
+  correctIndex: 0,
+  explanation:
+    'A lot of ranger work is quiet and careful. Tracks, sightings and small changes help conservation teams understand what is happening in the landscape.',
+};
 
 export default function TalkWithImpiScreen({
   setCurrentScreen,
@@ -103,12 +78,19 @@ export default function TalkWithImpiScreen({
   const IMPI_API_URL =
     'https://us-central1-impi-ranger.cloudfunctions.net/askImpi';
 
+  const IMPI_SCENARIO_URL =
+    'https://us-central1-impi-ranger.cloudfunctions.net/generateImpiScenario';
+
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [scenarioIndex, setScenarioIndex] = useState(0);
   const [scenarioAnswered, setScenarioAnswered] = useState(false);
   const [scenarioAttempts, setScenarioAttempts] = useState<ScenarioAttempt[]>([]);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
+  const [scenarioLoading, setScenarioLoading] = useState(false);
+  const [activeScenarioAfterMessageCount, setActiveScenarioAfterMessageCount] =
+    useState(2);
 
   const scrollRef = useRef<ScrollView>(null);
   const hasCreatedInitialChat = useRef(false);
@@ -140,6 +122,40 @@ export default function TalkWithImpiScreen({
       },
     })
   ).current;
+
+  const loadNewScenario = async (afterMessageCount = 2) => {
+    setScenarioLoading(true);
+    setCurrentScenario(null);
+    setActiveScenarioAfterMessageCount(afterMessageCount);
+
+    try {
+      const response = await fetch(IMPI_SCENARIO_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (
+        data?.question &&
+        Array.isArray(data?.options) &&
+        data.options.length === 3 &&
+        typeof data.correctIndex === 'number' &&
+        data?.explanation
+      ) {
+        setCurrentScenario(data);
+      } else {
+        setCurrentScenario(fallbackScenario);
+      }
+    } catch (error) {
+      console.log(error);
+      setCurrentScenario(fallbackScenario);
+    } finally {
+      setScenarioLoading(false);
+    }
+  };
 
   const saveNewChat = async (chatMessages: ChatMessage[]) => {
     try {
@@ -208,6 +224,27 @@ export default function TalkWithImpiScreen({
         return;
       }
 
+      if (chatMode === 'scenarios') {
+        setMessages([
+          {
+            role: 'user',
+            content: 'Test me with a scenario',
+          },
+          {
+            role: 'impi',
+            content:
+              'Ready for a challenge? Read the situation below and choose the option you think best explains the reality of ranger work.',
+          },
+        ]);
+
+        setScenarioAttempts([]);
+        setCorrectAnswers(0);
+        setScenarioAnswered(false);
+        await loadNewScenario(2);
+
+        return;
+      }
+
       if (initialChatMessage) {
         setMessages([]);
 
@@ -234,31 +271,39 @@ export default function TalkWithImpiScreen({
       scrollRef.current?.scrollToEnd({ animated: true });
       shouldAutoScroll.current = false;
     }, 100);
-  }, [messages, isTyping, scenarioAttempts, scenarioIndex]);
+  }, [messages, isTyping, scenarioAttempts, currentScenario, scenarioLoading]);
 
   const handleScenarioAnswer = (optionIndex: number) => {
-    const currentScenario = scenarios[scenarioIndex];
+    if (!currentScenario) return;
 
     shouldAutoScroll.current = true;
+
+    if (optionIndex === currentScenario.correctIndex) {
+      setCorrectAnswers((prev) => prev + 1);
+    }
 
     setScenarioAttempts((previousAttempts) => [
       ...previousAttempts,
       {
         scenario: currentScenario,
         selectedIndex: optionIndex,
+        afterMessageCount: activeScenarioAfterMessageCount,
       },
     ]);
 
     setScenarioAnswered(true);
   };
 
-  const handleNextScenario = () => {
+  const handleNextScenario = async () => {
     shouldAutoScroll.current = true;
     setScenarioAnswered(false);
+    await loadNewScenario(activeScenarioAfterMessageCount);
+  };
 
-    setScenarioIndex((previousIndex) =>
-      previousIndex === scenarios.length - 1 ? 0 : previousIndex + 1
-    );
+  const handleContinueScenarioAfterChat = async () => {
+    shouldAutoScroll.current = true;
+    setScenarioAnswered(false);
+    await loadNewScenario(messages.length);
   };
 
   const handleSendInitialMessage = async (initialMessage: string) => {
@@ -378,35 +423,117 @@ export default function TalkWithImpiScreen({
   };
 
   const renderMessage = (content: string) => {
-  const lines = content.split('\n');
+    const lines = content.split('\n');
 
-  return lines.map((line, index) => {
-    const headingMatch = line.match(/^(\d+\.\s*)?\*\*(.*?)\*\*:?\s*(.*)/);
+    return lines.map((line, index) => {
+      const headingMatch = line.match(/^(\d+\.\s*)?\*\*(.*?)\*\*:?\s*(.*)/);
 
-    if (headingMatch) {
-      const number = headingMatch[1] || '';
-      const heading = headingMatch[2];
-      const textAfterHeading = headingMatch[3];
+      if (headingMatch) {
+        const number = headingMatch[1] || '';
+        const heading = headingMatch[2];
+        const textAfterHeading = headingMatch[3];
+
+        return (
+          <View key={index} style={styles.messageSection}>
+            <Text style={styles.messageHeading}>
+              {number}
+              {heading}
+            </Text>
+
+            {textAfterHeading ? (
+              <Text style={styles.bubbleText}>{textAfterHeading}</Text>
+            ) : null}
+          </View>
+        );
+      }
 
       return (
-        <View key={index} style={styles.messageSection}>
-          <Text style={styles.messageHeading}>
-            {number}{heading}
-          </Text>
+        <Text key={index} style={styles.bubbleText}>
+          {line.replace(/\*\*/g, '')}
+        </Text>
+      );
+    });
+  };
 
-          {textAfterHeading ? (
-            <Text style={styles.bubbleText}>{textAfterHeading}</Text>
-          ) : null}
+  const renderScenarioAttempt = (
+    attempt: ScenarioAttempt,
+    attemptIndex: number
+  ) => {
+    const wasCorrect = attempt.selectedIndex === attempt.scenario.correctIndex;
+
+    return (
+      <View key={`attempt-${attemptIndex}`} style={styles.scenarioCard}>
+        <Text style={styles.scenarioTitle}>Learning Scenario</Text>
+
+        <Text style={styles.scoreText}>
+          Score: {correctAnswers}/{scenarioAttempts.length}
+        </Text>
+
+        <Text style={styles.scenarioQuestion}>{attempt.scenario.question}</Text>
+
+        {attempt.scenario.options.map((option, index) => {
+          const isSelected = attempt.selectedIndex === index;
+          const isCorrect = attempt.scenario.correctIndex === index;
+
+          return (
+            <View
+              key={index}
+              style={[
+                styles.optionButton,
+                isSelected && isCorrect && styles.correctOption,
+                isSelected && !isCorrect && styles.wrongOption,
+                !isSelected && isCorrect && styles.correctOption,
+              ]}
+            >
+              <Text style={styles.optionText}>
+                {String.fromCharCode(65 + index)}) {option}
+              </Text>
+            </View>
+          );
+        })}
+
+        <Text style={styles.explanationText}>
+          {wasCorrect ? 'Good observation. ' : 'Not quite. '}
+          {attempt.scenario.explanation}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderActiveScenario = () => {
+    if (scenarioLoading) {
+      return (
+        <View style={styles.impiBubble}>
+          <Text style={styles.bubbleText}>IMPI is preparing a scenario...</Text>
         </View>
       );
     }
 
+    if (!currentScenario || scenarioAnswered) return null;
+
     return (
-      <Text key={index} style={styles.bubbleText}>
-        {line.replace(/\*\*/g, '')}
-      </Text>
+      <View style={styles.scenarioCard}>
+        <Text style={styles.scenarioTitle}>Learning Scenario</Text>
+
+        <Text style={styles.scoreText}>
+          Score: {correctAnswers}/{scenarioAttempts.length}
+        </Text>
+
+        <Text style={styles.scenarioQuestion}>{currentScenario.question}</Text>
+
+        {currentScenario.options.map((option, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.optionButton}
+            onPress={() => handleScenarioAnswer(index)}
+          >
+            <Text style={styles.optionText}>
+              {String.fromCharCode(65 + index)}) {option}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     );
-  });
   };
 
   if (!fontsLoaded) return null;
@@ -458,95 +585,91 @@ export default function TalkWithImpiScreen({
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {messages.map((chatMessage, index) => (
-            <View
-              key={index}
-              style={
-                chatMessage.role === 'user'
-                  ? styles.userBubble
-                  : styles.impiBubble
-              }
-            >
-              {chatMessage.role === 'impi' ? (
-                renderMessage(chatMessage.content)
-              ) : (
-                <Text style={styles.bubbleText}>{chatMessage.content}</Text>
-              )}
-            </View>
-          ))}
-
           {chatMode === 'scenarios' ? (
             <>
-              {scenarioAttempts.map((attempt, attemptIndex) => {
-                const wasCorrect =
-                  attempt.selectedIndex === attempt.scenario.correctIndex;
-
-                return (
-                  <View key={attemptIndex} style={styles.scenarioCard}>
-                    <Text style={styles.scenarioTitle}>Decision Scenario</Text>
-
-                    <Text style={styles.scenarioQuestion}>
-                      {attempt.scenario.question}
-                    </Text>
-
-                    {attempt.scenario.options.map((option, index) => {
-                      const isSelected = attempt.selectedIndex === index;
-                      const isCorrect = attempt.scenario.correctIndex === index;
-
-                      return (
-                        <View
-                          key={index}
-                          style={[
-                            styles.optionButton,
-                            isSelected && isCorrect && styles.correctOption,
-                            isSelected && !isCorrect && styles.wrongOption,
-                            !isSelected && isCorrect && styles.correctOption,
-                          ]}
-                        >
-                          <Text style={styles.optionText}>
-                            {String.fromCharCode(65 + index)}) {option}
-                          </Text>
-                        </View>
-                      );
-                    })}
-
-                    <Text style={styles.explanationText}>
-                      {wasCorrect ? 'Correct. ' : 'Not quite. '}
-                      {attempt.scenario.explanation}
-                    </Text>
-                  </View>
-                );
-              })}
-
-              {!scenarioAnswered ? (
-                <View style={styles.scenarioCard}>
-                  <Text style={styles.scenarioTitle}>Decision Scenario</Text>
-
-                  <Text style={styles.scenarioQuestion}>
-                    {scenarios[scenarioIndex].question}
-                  </Text>
-
-                  {scenarios[scenarioIndex].options.map((option, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.optionButton}
-                      onPress={() => handleScenarioAnswer(index)}
-                    >
-                      <Text style={styles.optionText}>
-                        {String.fromCharCode(65 + index)}) {option}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+              {messages.slice(0, 2).map((chatMessage, index) => (
+                <View
+                  key={index}
+                  style={
+                    chatMessage.role === 'user'
+                      ? styles.userBubble
+                      : styles.impiBubble
+                  }
+                >
+                  {chatMessage.role === 'impi' ? (
+                    renderMessage(chatMessage.content)
+                  ) : (
+                    <Text style={styles.bubbleText}>{chatMessage.content}</Text>
+                  )}
                 </View>
-              ) : (
+              ))}
+
+              {scenarioAttempts
+                .filter((attempt) => attempt.afterMessageCount === 2)
+                .map(renderScenarioAttempt)}
+
+              {activeScenarioAfterMessageCount === 2 ? renderActiveScenario() : null}
+
+              {scenarioAnswered &&
+              activeScenarioAfterMessageCount === 2 &&
+              messages.length <= 2 ? (
                 <TouchableOpacity
                   style={styles.nextScenarioButton}
                   onPress={handleNextScenario}
                 >
-                  <Text style={styles.nextScenarioText}>Next Question</Text>
+                  <Text style={styles.nextScenarioText}>Next Scenario</Text>
                 </TouchableOpacity>
-              )}
+              ) : null}
             </>
+          ) : null}
+
+          {messages.slice(chatMode === 'scenarios' ? 2 : 0).map((chatMessage, index) => {
+            const renderedMessageCount = index + 3;
+
+            return (
+              <View key={`message-group-${index}`}>
+                <View
+                  style={
+                    chatMessage.role === 'user'
+                      ? styles.userBubble
+                      : styles.impiBubble
+                  }
+                >
+                  {chatMessage.role === 'impi' ? (
+                    renderMessage(chatMessage.content)
+                  ) : (
+                    <Text style={styles.bubbleText}>{chatMessage.content}</Text>
+                  )}
+                </View>
+
+                {chatMode === 'scenarios'
+                  ? scenarioAttempts
+                      .filter(
+                        (attempt) =>
+                          attempt.afterMessageCount === renderedMessageCount
+                      )
+                      .map(renderScenarioAttempt)
+                  : null}
+
+                {chatMode === 'scenarios' &&
+                activeScenarioAfterMessageCount === renderedMessageCount
+                  ? renderActiveScenario()
+                  : null}
+              </View>
+            );
+          })}
+
+          {chatMode === 'scenarios' &&
+          messages.length > 2 &&
+          scenarioAnswered ? (
+            <TouchableOpacity
+              style={styles.nextScenarioButton}
+              onPress={handleContinueScenarioAfterChat}
+            >
+              <Text style={styles.nextScenarioText}>
+                Continue with More Scenarios
+              </Text>
+            </TouchableOpacity>
           ) : null}
 
           {isTyping ? (
@@ -725,6 +848,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.14)',
     justifyContent: 'center',
     paddingHorizontal: 18,
+    paddingVertical: 18,
     marginBottom: 12,
   },
 
@@ -815,5 +939,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  scoreText: {
+    color: '#F5F5F5',
+    fontSize: 12,
+    fontFamily: 'Aldrich',
+    marginBottom: 10,
+    opacity: 0.8,
   },
 });

@@ -4,36 +4,29 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { PanResponder } from 'react-native';
 import { useFonts } from 'expo-font';
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from 'firebase/firestore';
+
+import { auth, db } from '../services/firebaseConfig';
 
 type Props = {
   setCurrentScreen: (screen: string) => void;
   setSelectedStoryId: (storyId: string) => void;
 };
 
-const continueStory = {
-  id: 'night-patrol',
-  title: 'Night Patrol',
-  subtitle: 'A ranger team follows signs in the dark.',
-  readTime: '5 min read',
-  progress: '35%',
+type Story = {
+  id: string;
+  title: string;
+  subtitle: string;
+  estimatedMinutes: number;
+  totalChapters: number;
+  coverType: string;
+  progress?: number;
 };
-
-const recentStories = [
-  {
-    id: 'lost-rhino-calf',
-    title: 'The Lost Rhino Calf',
-    subtitle: 'A quiet rescue teaches patience and teamwork.',
-    readTime: '7 min read',
-    progress: '12%',
-  },
-  {
-    id: 'elephant-crossing',
-    title: 'Elephant Crossing',
-    subtitle: 'A simple road crossing becomes a lesson in respect.',
-    readTime: '4 min read',
-    progress: '0%',
-  },
-];
 
 export default function RangerStoriesScreen({
   setCurrentScreen,
@@ -45,38 +38,106 @@ export default function RangerStoriesScreen({
 
   const [searchText, setSearchText] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loadingStories, setLoadingStories] = useState(true);
 
   const swipeBackResponder = useRef(
     PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gesture) =>
+      onMoveShouldSetPanResponder: (_, gesture) =>
         gesture.dx > 25 && Math.abs(gesture.dy) < 20,
-        onPanResponderRelease: (_, gesture) => {
+      onPanResponderRelease: (_, gesture) => {
         if (gesture.dx > 90) {
-            setCurrentScreen('home');
+          setCurrentScreen('home');
         }
-        },
+      },
     })
-    ).current;
+  ).current;
+
+  useEffect(() => {
+    async function loadStories() {
+      try {
+        const progressMap: Record<string, number> = {};
+
+        if (auth.currentUser) {
+          const progressQuery = query(
+            collection(db, 'userStoryProgress'),
+            where('userId', '==', auth.currentUser.uid)
+          );
+
+          const progressSnapshot = await getDocs(progressQuery);
+
+          progressSnapshot.forEach((doc) => {
+            const data = doc.data();
+
+            progressMap[data.storyId] = data.progressPercent || 0;
+          });
+        }
+
+        const storySnapshot = await getDocs(collection(db, 'storyTemplates'));
+
+        const loadedStories: Story[] = storySnapshot.docs
+          .map((storyDoc) => {
+            const data = storyDoc.data();
+
+            return {
+              id: storyDoc.id,
+              title: data.title || 'Untitled Story',
+              subtitle: data.subtitle || '',
+              estimatedMinutes: data.estimatedMinutes || 1,
+              totalChapters: data.totalChapters || 1,
+              coverType: data.coverType || 'story',
+              progress: progressMap[storyDoc.id] || 0,
+            };
+          })
+          .filter((story) => story.id !== 'testStory');
+
+          console.log('STORIES FOUND:', loadedStories.length);
+console.log(loadedStories);
+        setStories(loadedStories);
+      } catch (error) {
+        console.log('LOAD STORIES ERROR:', error);
+      } finally {
+        setLoadingStories(false);
+      }
+    }
+
+    loadStories();
+  }, []);
 
   const openStory = (storyId: string) => {
     setSelectedStoryId(storyId);
     setCurrentScreen('rangerStoryReader');
   };
 
-  const storyMatchesSearch = (story: any) => {
+  const storyMatchesSearch = (story: Story) => {
     const search = searchText.trim().toLowerCase();
 
     if (!search) return true;
 
     return (
       story.title.toLowerCase().includes(search) ||
-      story.subtitle?.toLowerCase().includes(search) ||
-      story.readTime.toLowerCase().includes(search)
+      story.subtitle.toLowerCase().includes(search) ||
+      `${story.estimatedMinutes} min read`.toLowerCase().includes(search)
     );
   };
 
-  const showContinueStory = storyMatchesSearch(continueStory);
-  const filteredRecentStories = recentStories.filter(storyMatchesSearch);
+  const filteredStories = stories.filter(storyMatchesSearch);
+
+  console.log('FILTERED STORIES:', filteredStories);
+  const continueStory = filteredStories.find(
+  story => story.progress! > 0 && story.progress! < 100
+  );
+
+  const completedStories = filteredStories.filter(
+    story => story.progress === 100
+  );
+
+  const otherStories = filteredStories.filter(
+    story =>
+      story.id !== continueStory?.id &&
+      story.progress !== 100
+  );
+  
 
   if (!fontsLoaded) return null;
 
@@ -129,7 +190,19 @@ export default function RangerStoriesScreen({
         contentContainerStyle={styles.storyContent}
         showsVerticalScrollIndicator={false}
       >
-        {showContinueStory ? (
+        {loadingStories ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>Loading stories...</Text>
+          </View>
+        ) : null}
+
+        {!loadingStories && filteredStories.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>No stories found.</Text>
+          </View>
+        ) : null}
+
+        {continueStory ? (
           <TouchableOpacity
             style={styles.continueCard}
             activeOpacity={0.85}
@@ -147,12 +220,12 @@ export default function RangerStoriesScreen({
 
                 <View style={styles.progressRow}>
                   <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: continueStory.progress }]} />
+                    <View style={[styles.progressFill, { width: `${continueStory.progress || 0}%` }]} />
                   </View>
-                  <Text style={styles.progressText}>{continueStory.progress}</Text>
+                  <Text style={styles.progressText}>{continueStory.progress || 0}%</Text>
                 </View>
 
-                <Text style={styles.readTime}>{continueStory.readTime}</Text>
+                <Text style={styles.readTime}>{continueStory.estimatedMinutes} min read</Text>
               </View>
 
               <TouchableOpacity
@@ -166,21 +239,14 @@ export default function RangerStoriesScreen({
           </TouchableOpacity>
         ) : null}
 
-        {!showContinueStory && filteredRecentStories.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>No stories found.</Text>
-          </View>
-        ) : null}
-
-        {filteredRecentStories.length > 0 ? (
+        {otherStories.length > 0 ? (
           <>
             <View style={styles.recentHeader}>
-              <Text style={styles.recentTitle}>Recent</Text>
-              <Text style={styles.viewAll}>View all</Text>
+              <Text style={styles.recentTitle}>Other Stories</Text>
             </View>
 
             <View style={styles.recentGrid}>
-              {filteredRecentStories.map((story) => (
+              {otherStories.map((story) => (
                 <TouchableOpacity
                   key={story.id}
                   style={styles.recentCard}
@@ -193,19 +259,53 @@ export default function RangerStoriesScreen({
                     </View>
 
                     <Text style={styles.smallTitle}>{story.title}</Text>
-                    <Text style={styles.smallTime}>{story.readTime}</Text>
+                    <Text style={styles.smallTime}>{story.estimatedMinutes} min read</Text>
 
                     <View style={styles.smallProgressTrack}>
-                      <View style={[styles.smallProgressFill, { width: story.progress }]} />
+                      <View style={[styles.smallProgressFill, { width: `${story.progress || 0}%` }]} />
                     </View>
 
-                    <Text style={styles.smallProgress}>{story.progress}</Text>
+                    <Text style={styles.smallProgress}>{story.progress || 0}%</Text>
                   </BlurView>
                 </TouchableOpacity>
               ))}
             </View>
           </>
         ) : null}
+
+        {completedStories.length > 0 ? (
+  <>
+    <View style={styles.recentHeader}>
+      <Text style={styles.recentTitle}>Completed Readings</Text>
+    </View>
+
+    <View style={styles.recentGrid}>
+      {completedStories.map((story) => (
+        <TouchableOpacity
+          key={story.id}
+          style={styles.recentCard}
+          activeOpacity={0.85}
+          onPress={() => openStory(story.id)}
+        >
+          <BlurView intensity={22} tint="light" style={styles.recentGlass}>
+            <View style={styles.smallCover}>
+              <MaterialIcons name="done" size={30} color="#F5F5F5" />
+            </View>
+
+            <Text style={styles.smallTitle}>{story.title}</Text>
+            <Text style={styles.smallTime}>{story.estimatedMinutes} min read</Text>
+
+            <View style={styles.smallProgressTrack}>
+              <View style={[styles.smallProgressFill, { width: '100%' }]} />
+            </View>
+
+            <Text style={styles.smallProgress}>Completed</Text>
+          </BlurView>
+        </TouchableOpacity>
+      ))}
+    </View>
+  </>
+) : null}
       </ScrollView>
     </View>
   );
@@ -423,15 +523,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Aldrich',
   },
 
-  viewAll: {
-    color: '#F5F5F5',
-    fontSize: 11,
-    fontFamily: 'Aldrich',
-    opacity: 0.75,
-  },
-
   recentGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
 
@@ -440,6 +534,7 @@ const styles = StyleSheet.create({
     height: 205,
     borderRadius: 28,
     overflow: 'hidden',
+    marginBottom: 16,
   },
 
   recentGlass: {

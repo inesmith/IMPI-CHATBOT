@@ -257,9 +257,7 @@ export default function HomeScreen({
                 onPress={() => {
                   setSelectedChatId(null);
                   setChatMode('scenarios');
-                  setInitialChatMessage(
-                    'Give me a conservation scenario. Let me choose an answer, then tell me if I was correct or incorrect and explain why.'
-                  );
+                  setInitialChatMessage('');
                   setCurrentScreen('talkWithImpi');
                 }}
               >

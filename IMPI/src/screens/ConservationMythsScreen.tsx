@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFonts } from 'expo-font';
 import { BlurView } from 'expo-blur';
 
@@ -23,7 +23,7 @@ type MythCard = {
   explanation: string;
 };
 
-const cards: MythCard[] = [
+const fallbackCards: MythCard[] = [
   {
     statement: 'Rangers only catch poachers.',
     answer: 'myth',
@@ -36,30 +36,6 @@ const cards: MythCard[] = [
     explanation:
       'Predators help regulate prey populations and support biodiversity in natural ecosystems.',
   },
-  {
-    statement: 'All snakes are dangerous.',
-    answer: 'myth',
-    explanation:
-      'Most snakes are harmless and play an important role by controlling pests.',
-  },
-  {
-    statement: 'Conservation protects animals, plants, water and communities.',
-    answer: 'fact',
-    explanation:
-      'Conservation is about protecting whole ecosystems, not only individual animals.',
-  },
-  {
-    statement: 'Wild animals are usually happier in captivity.',
-    answer: 'myth',
-    explanation:
-      'Most wild animals thrive best in natural ecosystems where they can follow natural behaviours.',
-  },
-  {
-    statement: 'Rangers collect field data to help protect ecosystems.',
-    answer: 'fact',
-    explanation:
-      'Field data helps conservation teams understand animal movement, habitat health and risks in the environment.',
-  },
 ];
 
 export default function ConservationMythsScreen({ setCurrentScreen }: Props) {
@@ -67,10 +43,15 @@ export default function ConservationMythsScreen({ setCurrentScreen }: Props) {
     Aldrich: require('../../assets/fonts/Aldrich-Regular.ttf'),
   });
 
+  const IMPI_MYTH_URL =
+    'https://us-central1-impi-ranger.cloudfunctions.net/generateImpiMythCard';
+
+  const [cards, setCards] = useState<MythCard[]>(fallbackCards);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
   const [chosenAnswer, setChosenAnswer] = useState<'myth' | 'fact' | null>(null);
+  const [isLoadingCard, setIsLoadingCard] = useState(false);
 
   const position = useRef(new Animated.ValueXY()).current;
   const wrongBorderOpacity = useRef(new Animated.Value(0)).current;
@@ -81,11 +62,43 @@ export default function ConservationMythsScreen({ setCurrentScreen }: Props) {
     extrapolate: 'clamp',
   });
 
-  const currentCard = cards[currentIndex];
-  const nextCard = cards[(currentIndex + 1) % cards.length];
+  const currentCard = cards[currentIndex] || fallbackCards[0];
+  const nextCard = cards[currentIndex + 1] || fallbackCards[1];
 
   const currentCardRef = useRef(currentCard);
-    currentCardRef.current = currentCard;
+  currentCardRef.current = currentCard;
+
+  const loadNewMythCard = async () => {
+    setIsLoadingCard(true);
+
+    try {
+      const response = await fetch(IMPI_MYTH_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (
+        data?.statement &&
+        (data.answer === 'myth' || data.answer === 'fact') &&
+        data?.explanation
+      ) {
+        setCards((previousCards) => [...previousCards, data]);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoadingCard(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNewMythCard();
+    loadNewMythCard();
+  }, []);
 
   const goToNextCard = () => {
     setShowResult(false);
@@ -93,9 +106,11 @@ export default function ConservationMythsScreen({ setCurrentScreen }: Props) {
     wrongBorderOpacity.setValue(0);
     position.setValue({ x: 0, y: 0 });
 
-    setCurrentIndex((previousIndex) =>
-      previousIndex === cards.length - 1 ? 0 : previousIndex + 1
-    );
+    setCurrentIndex((previousIndex) => previousIndex + 1);
+
+    if (cards.length - currentIndex <= 3) {
+      loadNewMythCard();
+    }
   };
 
   const triggerWrongFeedback = () => {
@@ -127,27 +142,27 @@ export default function ConservationMythsScreen({ setCurrentScreen }: Props) {
     setWasCorrect(correct);
 
     if (correct) {
-        Animated.timing(position, {
+      Animated.timing(position, {
         toValue: {
-            x: answer === 'fact' ? 500 : -500,
-            y: 0,
+          x: answer === 'fact' ? 500 : -500,
+          y: 0,
         },
         duration: 260,
         useNativeDriver: false,
-        }).start(() => {
+      }).start(() => {
         goToNextCard();
-        });
+      });
     } else {
-        triggerWrongFeedback();
+      triggerWrongFeedback();
 
-        Animated.spring(position, {
+      Animated.spring(position, {
         toValue: { x: 0, y: 0 },
         useNativeDriver: false,
-        }).start(() => {
+      }).start(() => {
         setShowResult(true);
-        });
+      });
     }
-    };
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -159,16 +174,16 @@ export default function ConservationMythsScreen({ setCurrentScreen }: Props) {
         const cardToCheck = currentCardRef.current;
 
         if (gesture.dx > 120) {
-            handleAnswer('fact', cardToCheck);
+          handleAnswer('fact', cardToCheck);
         } else if (gesture.dx < -120) {
-            handleAnswer('myth', cardToCheck);
+          handleAnswer('myth', cardToCheck);
         } else {
-            Animated.spring(position, {
+          Animated.spring(position, {
             toValue: { x: 0, y: 0 },
             useNativeDriver: false,
-            }).start();
+          }).start();
         }
-        },
+      },
     })
   ).current;
 
@@ -239,7 +254,9 @@ export default function ConservationMythsScreen({ setCurrentScreen }: Props) {
               </>
             ) : (
               <>
-                <Text style={styles.cardLabel}>SWIPE CARD</Text>
+                <Text style={styles.cardLabel}>
+                  {isLoadingCard ? 'SWIPE CARD' : 'SWIPE CARD'}
+                </Text>
 
                 <Text style={styles.cardText}>{currentCard.statement}</Text>
 
@@ -259,9 +276,7 @@ export default function ConservationMythsScreen({ setCurrentScreen }: Props) {
             <Text style={styles.answerText}>MYTH</Text>
           </View>
 
-          <Text style={styles.counterText}>
-            {currentIndex + 1} / {cards.length}
-          </Text>
+          <Text style={styles.counterText}>{currentIndex + 1}</Text>
 
           <View style={styles.answerPill}>
             <Text style={styles.answerText}>FACT</Text>

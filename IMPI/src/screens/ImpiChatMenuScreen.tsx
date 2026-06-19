@@ -49,10 +49,18 @@ export default function ImpiChatMenuScreen({
     };
 
     const handleSuggestionPress = (text: string) => {
-    setSelectedChatId(null);
-    setChatMode('general');
-    setInitialChatMessage(text);
-    setCurrentScreen('talkWithImpi');
+      setSelectedChatId(null);
+
+      if (text === 'Test me with a scenario') {
+        setChatMode('scenarios');
+        setInitialChatMessage('');
+        setCurrentScreen('talkWithImpi');
+        return;
+      }
+
+      setChatMode('general');
+      setInitialChatMessage(text);
+      setCurrentScreen('talkWithImpi');
     };
 
     const swipeBackResponder = useRef(
