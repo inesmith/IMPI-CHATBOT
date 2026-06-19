@@ -23,6 +23,7 @@ import {
   collection,
 } from 'firebase/firestore';
 
+import ImpiLogo from '../../assets/images/ImpiLogo.svg';
 import { auth, db } from '../services/firebaseConfig';
 
 type Props = {
@@ -131,9 +132,7 @@ export default function TalkWithImpiScreen({
     try {
       const response = await fetch(IMPI_SCENARIO_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const data = await response.json();
@@ -159,10 +158,7 @@ export default function TalkWithImpiScreen({
 
   const saveNewChat = async (chatMessages: ChatMessage[]) => {
     try {
-      if (!auth.currentUser) {
-        console.log('NO CURRENT USER');
-        return;
-      }
+      if (!auth.currentUser) return;
 
       const firstUserMessage =
         chatMessages.find((item) => item.role === 'user')?.content ||
@@ -183,7 +179,6 @@ export default function TalkWithImpiScreen({
         createdAt: serverTimestamp(),
       });
 
-      console.log('CHAT SAVED:', chatDoc.id);
       setSelectedChatId(chatDoc.id);
     } catch (error) {
       console.log('SAVE CHAT ERROR:', error);
@@ -226,10 +221,7 @@ export default function TalkWithImpiScreen({
 
       if (chatMode === 'scenarios') {
         setMessages([
-          {
-            role: 'user',
-            content: 'Test me with a scenario',
-          },
+          { role: 'user', content: 'Test me with a scenario' },
           {
             role: 'impi',
             content:
@@ -241,13 +233,11 @@ export default function TalkWithImpiScreen({
         setCorrectAnswers(0);
         setScenarioAnswered(false);
         await loadNewScenario(2);
-
         return;
       }
 
       if (initialChatMessage) {
         setMessages([]);
-
         setTimeout(() => {
           setMessage('');
           handleSendInitialMessage(initialChatMessage);
@@ -318,9 +308,7 @@ export default function TalkWithImpiScreen({
     try {
       const response = await fetch(IMPI_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: initialMessage,
           conversation: [],
@@ -338,20 +326,17 @@ export default function TalkWithImpiScreen({
       ];
 
       setMessages(finalMessages);
-
       await saveNewChat(finalMessages);
     } catch (error) {
       console.log(error);
 
-      const errorMessages: ChatMessage[] = [
+      setMessages([
         ...userUpdatedMessages,
         {
           role: 'impi',
           content: 'Sorry, IMPI could not connect right now.',
         },
-      ];
-
-      setMessages(errorMessages);
+      ]);
     } finally {
       setIsTyping(false);
       shouldAutoScroll.current = true;
@@ -377,9 +362,7 @@ export default function TalkWithImpiScreen({
     try {
       const response = await fetch(IMPI_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMessage,
           conversation: messages,
@@ -406,15 +389,13 @@ export default function TalkWithImpiScreen({
     } catch (error) {
       console.log(error);
 
-      const errorMessages: ChatMessage[] = [
+      setMessages([
         ...userUpdatedMessages,
         {
           role: 'impi',
           content: 'Sorry, IMPI could not connect right now.',
         },
-      ];
-
-      setMessages(errorMessages);
+      ]);
     } finally {
       setIsTyping(false);
       shouldAutoScroll.current = true;
@@ -453,6 +434,44 @@ export default function TalkWithImpiScreen({
         </Text>
       );
     });
+  };
+
+  const lastImpiMessageIndex = messages
+    .map((item, index) => (item.role === 'impi' ? index : -1))
+    .filter((index) => index !== -1)
+    .pop();
+
+  const renderChatBubble = (chatMessage: ChatMessage, realIndex: number) => {
+    const showImpiLogo =
+      chatMessage.role === 'impi' && realIndex === lastImpiMessageIndex;
+
+    return (
+      <View
+        key={`message-${realIndex}`}
+        style={[
+          styles.messageRow,
+          chatMessage.role === 'user' && styles.userMessageRow,
+        ]}
+      >
+        {showImpiLogo ? (
+          <View style={styles.impiLogoWrap}>
+            <ImpiLogo width={28} height={28} />
+          </View>
+        ) : null}
+
+        <View
+          style={
+            chatMessage.role === 'user' ? styles.userBubble : styles.impiBubble
+          }
+        >
+          {chatMessage.role === 'impi' ? (
+            renderMessage(chatMessage.content)
+          ) : (
+            <Text style={styles.bubbleText}>{chatMessage.content}</Text>
+          )}
+        </View>
+      </View>
+    );
   };
 
   const renderScenarioAttempt = (
@@ -587,28 +606,17 @@ export default function TalkWithImpiScreen({
         >
           {chatMode === 'scenarios' ? (
             <>
-              {messages.slice(0, 2).map((chatMessage, index) => (
-                <View
-                  key={index}
-                  style={
-                    chatMessage.role === 'user'
-                      ? styles.userBubble
-                      : styles.impiBubble
-                  }
-                >
-                  {chatMessage.role === 'impi' ? (
-                    renderMessage(chatMessage.content)
-                  ) : (
-                    <Text style={styles.bubbleText}>{chatMessage.content}</Text>
-                  )}
-                </View>
-              ))}
+              {messages.slice(0, 2).map((chatMessage, index) =>
+                renderChatBubble(chatMessage, index)
+              )}
 
               {scenarioAttempts
                 .filter((attempt) => attempt.afterMessageCount === 2)
                 .map(renderScenarioAttempt)}
 
-              {activeScenarioAfterMessageCount === 2 ? renderActiveScenario() : null}
+              {activeScenarioAfterMessageCount === 2
+                ? renderActiveScenario()
+                : null}
 
               {scenarioAnswered &&
               activeScenarioAfterMessageCount === 2 &&
@@ -623,41 +631,32 @@ export default function TalkWithImpiScreen({
             </>
           ) : null}
 
-          {messages.slice(chatMode === 'scenarios' ? 2 : 0).map((chatMessage, index) => {
-            const renderedMessageCount = index + 3;
+          {messages
+            .slice(chatMode === 'scenarios' ? 2 : 0)
+            .map((chatMessage, index) => {
+              const realIndex = chatMode === 'scenarios' ? index + 2 : index;
+              const renderedMessageCount = realIndex + 1;
 
-            return (
-              <View key={`message-group-${index}`}>
-                <View
-                  style={
-                    chatMessage.role === 'user'
-                      ? styles.userBubble
-                      : styles.impiBubble
-                  }
-                >
-                  {chatMessage.role === 'impi' ? (
-                    renderMessage(chatMessage.content)
-                  ) : (
-                    <Text style={styles.bubbleText}>{chatMessage.content}</Text>
-                  )}
+              return (
+                <View key={`message-group-${realIndex}`}>
+                  {renderChatBubble(chatMessage, realIndex)}
+
+                  {chatMode === 'scenarios'
+                    ? scenarioAttempts
+                        .filter(
+                          (attempt) =>
+                            attempt.afterMessageCount === renderedMessageCount
+                        )
+                        .map(renderScenarioAttempt)
+                    : null}
+
+                  {chatMode === 'scenarios' &&
+                  activeScenarioAfterMessageCount === renderedMessageCount
+                    ? renderActiveScenario()
+                    : null}
                 </View>
-
-                {chatMode === 'scenarios'
-                  ? scenarioAttempts
-                      .filter(
-                        (attempt) =>
-                          attempt.afterMessageCount === renderedMessageCount
-                      )
-                      .map(renderScenarioAttempt)
-                  : null}
-
-                {chatMode === 'scenarios' &&
-                activeScenarioAfterMessageCount === renderedMessageCount
-                  ? renderActiveScenario()
-                  : null}
-              </View>
-            );
-          })}
+              );
+            })}
 
           {chatMode === 'scenarios' &&
           messages.length > 2 &&
@@ -775,6 +774,28 @@ const styles = StyleSheet.create({
     paddingBottom: 130,
   },
 
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    alignSelf: 'flex-start',
+    marginBottom: 28,
+  },
+
+  userMessageRow: {
+    alignSelf: 'flex-end',
+  },
+
+  impiLogoWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(217,217,217,0.20)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    marginBottom: 2,
+  },
+
   userBubble: {
     alignSelf: 'flex-end',
     maxWidth: '78%',
@@ -783,7 +804,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(158,154,81,0.75)',
     paddingHorizontal: 22,
     paddingVertical: 14,
-    marginBottom: 28,
   },
 
   impiBubble: {
@@ -794,7 +814,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 18,
     borderBottomLeftRadius: 0,
-    marginBottom: 28,
   },
 
   bubbleText: {
